@@ -40,7 +40,7 @@ export function generateWorkers(count = 50) {
     const plan = pick(planTypes);
     const weeklyEarnings = rand(4000, 6000);
     const riskScore = Math.round((Math.random() * 0.7 + 0.15) * 100) / 100;
-    
+
     return {
       id: generateId(),
       name: `${pick(firstNames)} ${pick(lastNames)}`,
@@ -85,7 +85,7 @@ export function generateClaims(workers, count = 80) {
     const trigger = pick(triggerTypes);
     const status = pick(['Approved', 'Flagged', 'Paid', 'Pending']);
     const amount = rand(500, 2000);
-    
+
     return {
       id: generateId(),
       workerId: worker.id,
@@ -218,11 +218,11 @@ export function getDashboardMetrics(workers, claims) {
 // Notifications
 export function getNotifications() {
   return [
-    { id: 1, title: 'Flood Alert — Mumbai', message: 'Heavy rainfall predicted in Andheri zone. 45 workers may be affected.', type: 'warning', time: '5 min ago', read: false },
-    { id: 2, title: 'Payout Processed', message: '₹12,500 disbursed to 8 workers in Chennai zone.', type: 'success', time: '15 min ago', read: false },
-    { id: 3, title: 'Fraud Detection', message: 'Suspicious claim pattern detected for worker GS-A7K2M.', type: 'danger', time: '1 hr ago', read: false },
-    { id: 4, title: 'New Policy Enrollments', message: '12 new Pro plan enrollments from Bangalore.', type: 'info', time: '2 hrs ago', read: true },
-    { id: 5, title: 'Heat Wave Alert', message: 'Jaipur temperatures expected to exceed 45°C tomorrow.', type: 'warning', time: '3 hrs ago', read: true },
-    { id: 6, title: 'System Update', message: 'AI risk model v2.3 deployed successfully.', type: 'info', time: '5 hrs ago', read: true },
+    { id: 1, title: 'Claim Rejected', message: 'Rejected due to Pandemic Exclusion (Clause 4.2).', type: 'danger', icon: '🚨', time: '2 min ago', read: false },
+    { id: 2, title: 'AI Risk Assistant', message: 'Heavy rain detected in Mumbai → risk increased by 20%.', type: 'warning', icon: '☔', time: '15 min ago', read: false },
+    { id: 3, title: 'Premium Update', message: 'Worker GS-5N3X premium increased due to high risk behavior.', type: 'info', icon: '💰', time: '1 hr ago', read: false },
+    { id: 4, title: 'Fraud Alert', message: 'Suspicious claim activity from Worker GS-9Z2P.', type: 'danger', icon: '🛡️', time: '2 hrs ago', read: false },
+    { id: 5, title: 'AI Risk Assistant', message: 'Night deliveries consistently increasing claim probability by 23%.', type: 'warning', icon: '🌙', time: '3 hrs ago', read: false },
+    { id: 6, title: 'Fraud Alert', message: 'Multiple claims filed from same user in short time (Velocity Check Failed).', type: 'danger', icon: '🚨', time: '5 hrs ago', read: true },
   ];
 }

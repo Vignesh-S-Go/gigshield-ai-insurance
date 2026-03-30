@@ -4,13 +4,15 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Line,
+  LineChart,
   PolarAngleAxis,
   PolarGrid,
   PolarRadiusAxis, Radar,
   RadarChart,
   ResponsiveContainer,
   Tooltip,
-  XAxis, YAxis,
+  XAxis, YAxis
 } from 'recharts';
 import useStore from '../store/useStore';
 import { formatCurrency, formatDate, getRiskColor, getStatusColor, getTriggerIcon } from '../utils/helpers';
@@ -50,6 +52,13 @@ export default function WorkerDetailPage() {
     { subject: 'Earnings', value: parseFloat(worker.riskBreakdown.earningsVolatility) * 100 },
     { subject: 'Zone', value: parseFloat(worker.riskBreakdown.zoneRisk) * 100 },
     { subject: 'Fraud', value: parseFloat(worker.riskBreakdown.fraudIndicator) * 100 },
+  ];
+
+  const timeMachineData = [
+    { timeline: '3 Months Ago', risk: worker.riskScore * 0.85 * 100 },
+    { timeline: 'Last Month', risk: worker.riskScore * 0.92 * 100 },
+    { timeline: 'Current', risk: worker.riskScore * 100 },
+    { timeline: 'Projected (30 Days)', risk: worker.riskScore > 0.6 ? worker.riskScore * 1.15 * 100 : worker.riskScore * 0.85 * 100 },
   ];
 
   const risk = getRiskColor(worker.riskScore);
@@ -195,6 +204,26 @@ export default function WorkerDetailPage() {
             </RadarChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* Risk Time Machine */}
+      <div className="glass-card rounded-2xl p-6 mb-6">
+        <h3 className="text-lg font-bold text-dark-800 dark:text-dark-200 mb-2 flex items-center gap-2">
+          <Activity className="w-5 h-5 text-primary-500" /> Risk Time Machine
+        </h3>
+        <p className="text-xs text-dark-500 mb-6">AI-driven trajectory mapping historical driving patterns against predictive future actuarial risk probabilities.</p>
+        <ResponsiveContainer width="100%" height={280}>
+          <LineChart data={timeMachineData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" vertical={false} />
+            <XAxis dataKey="timeline" tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 600 }} axisLine={false} tickLine={false} dy={10} />
+            <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} dx={-10} tickFormatter={(v) => `${v}%`} />
+            <Tooltip
+              formatter={(v) => [`${Math.min(v, 100).toFixed(1)}% Risk`, 'Trajectory']}
+              contentStyle={{ borderRadius: '12px', border: '1px solid #1e293b', backgroundColor: '#0f172a', color: '#f8fafc', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
+            />
+            <Line type="monotone" dataKey="risk" stroke="#3b82f6" strokeWidth={5} activeDot={{ r: 8, fill: '#3b82f6', stroke: '#0f172a', strokeWidth: 4 }} dot={{ r: 5, fill: '#0f172a', stroke: '#3b82f6', strokeWidth: 3 }} />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Claims History */}

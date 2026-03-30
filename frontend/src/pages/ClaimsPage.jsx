@@ -2,6 +2,7 @@ import { ChevronDown, Download, Eye, Search, ShieldAlert, ShieldCheck } from 'lu
 import { useState } from 'react';
 import Header from '../components/Header';
 import Modal from '../components/Modal';
+import { aiService } from '../services/aiService';
 import useStore from '../store/useStore';
 import { exportToCSV, formatCurrency, formatDate, getStatusColor, getTriggerIcon } from '../utils/helpers';
 import { evaluateClaim } from '../utils/rulesEngine';
@@ -12,6 +13,40 @@ export default function ClaimsPage() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [triggerFilter, setTriggerFilter] = useState('All');
   const [selectedClaim, setSelectedClaim] = useState(null);
+  const [geminiExplanation, setGeminiExplanation] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+
+  const handleViewClaim = async (claim) => {
+    setSelectedClaim(claim);
+    setGeminiExplanation(null);
+    setIsGenerating(true);
+
+    const worker = workers.find(w => w.id === claim.workerId);
+    const data = {
+      id: claim.id,
+      trigger: claim.triggerType,
+      city: claim.workerCity,
+      weather: claim.weatherSource || 'Known params',
+      riskScore: worker?.riskScore || 0.5,
+    };
+    const decision = evaluateClaim({ trigger: claim.triggerType });
+
+    const explanation = await aiService.explainClaim(data, decision);
+    setGeminiExplanation(explanation);
+    setIsGenerating(false);
+  };
+
+  const playVoiceExplanation = (text) => {
+    if ('speechSynthesis' in window) {
+      setIsPlayingVoice(true);
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.onend = () => setIsPlayingVoice(false);
+      speechSynthesis.speak(utterance);
+    } else {
+      alert("Voice synthesis is not supported in this browser.");
+    }
+  };
 
   const statuses = ['All', 'Approved', 'Pending', 'Paid', 'Flagged'];
   const triggers = ['All', 'Rain', 'Heat', 'Flood', 'AQI', 'Curfew'];
@@ -98,7 +133,7 @@ export default function ClaimsPage() {
                   <td className="px-5 py-2.5 text-sm font-semibold text-dark-800 dark:text-dark-200">{formatCurrency(claim.payoutAmount)}</td>
                   <td className="px-5 py-2.5 text-sm text-dark-500">{formatDate(claim.date)}</td>
                   <td className="px-5 py-2.5">
-                    <button onClick={() => setSelectedClaim(claim)} className="p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-700 transition-colors text-dark-400 hover:text-primary-500">
+                    <button onClick={() => handleViewClaim(claim)} className="p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-700 transition-colors text-dark-400 hover:text-primary-500">
                       <Eye className="w-4 h-4" />
                     </button>
                   </td>
@@ -148,42 +183,85 @@ export default function ClaimsPage() {
               </div>
             </div>
 
-            {/* Claim Decision Explainability Panel */}
+            {/* Claim Story Replay */}
+            <div className="p-5 rounded-xl border border-dark-200 dark:border-dark-700 bg-dark-50 dark:bg-dark-800/50">
+              <h4 className="text-sm font-bold text-dark-800 dark:text-dark-200 mb-4 uppercase tracking-widest">Claim Story Replay</h4>
+              <div className="relative pl-4 space-y-4 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-primary-500 before:to-dark-700">
+                <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary-50 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 ring-4 ring-dark-50 dark:ring-dark-900 border border-primary-500">
+                    <div className="w-2 h-2 rounded-full bg-primary-500"></div>
+                  </div>
+                  <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-3 rounded-lg border border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-800 shadow">
+                    <h5 className="font-bold text-xs text-dark-800 dark:text-gray-100 mb-1">Pre-Incident Risk Score</h5>
+                    <p className="text-[10px] text-dark-500 dark:text-dark-400">Worker was at {workers.find(w => w.id === selectedClaim.workerId)?.riskScore || 0.52} / 1.0 driving risk in {selectedClaim.workerCity}.</p>
+                  </div>
+                </div>
+                <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary-50 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 ring-4 ring-dark-50 dark:ring-dark-900 border border-primary-500">
+                    <div className="w-2 h-2 rounded-full bg-primary-500"></div>
+                  </div>
+                  <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-3 rounded-lg border border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-800 shadow">
+                    <h5 className="font-bold text-xs text-dark-800 dark:text-gray-100 mb-1">Environmental Trigger</h5>
+                    <p className="text-[10px] text-dark-500 dark:text-dark-400">Weather API registered: {selectedClaim.weatherSource || 'Clear conditions'}. Event type logged as {selectedClaim.triggerType}.</p>
+                  </div>
+                </div>
+                <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary-50 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 ring-4 ring-dark-50 dark:ring-dark-900 border border-primary-500">
+                    <div className="w-2 h-2 rounded-full bg-primary-500"></div>
+                  </div>
+                  <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-3 rounded-lg border border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-800 shadow">
+                    <h5 className="font-bold text-xs text-dark-800 dark:text-gray-100 mb-1">Decision Reached</h5>
+                    <p className="text-[10px] text-dark-500 dark:text-dark-400">Claim {evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'approved instantly via automated smart contract validation' : 'flagged and intercepted due to violation of parametric rules'}.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Gemini AI Detailed Explainability */}
             <div className={`p-5 rounded-xl border-2 ${!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'border-danger-500 bg-danger-50 dark:bg-danger-500/10' : 'border-success-500 bg-success-50 dark:bg-success-500/10'} relative overflow-hidden`}>
-              <div className="flex items-center gap-3 mb-4 relative z-10">
-                <div className={`p-2 rounded-lg ${!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'bg-danger-100 dark:bg-danger-500/20 text-danger-600' : 'bg-success-100 dark:bg-success-500/20 text-success-600'}`}>
-                  {!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? <ShieldAlert className="w-6 h-6" /> : <ShieldCheck className="w-6 h-6" />}
+              <div className="flex items-center justify-between mb-4 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'bg-danger-100 dark:bg-danger-500/20 text-danger-600' : 'bg-success-100 dark:bg-success-500/20 text-success-600'}`}>
+                    {!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? <ShieldAlert className="w-6 h-6" /> : <ShieldCheck className="w-6 h-6" />}
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-black text-dark-800 dark:text-gray-100">Decision: {!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'REJECTED' : 'APPROVED'}</h4>
+                    <p className="text-[10px] text-dark-500 uppercase tracking-widest font-semibold mt-0.5">Gemini AI Engine</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-lg font-black text-dark-800 dark:text-gray-100">Decision: {!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'REJECTED' : 'APPROVED'}</h4>
-                  <p className="text-[10px] text-dark-500 uppercase tracking-widest font-semibold mt-0.5">Explainable AI Audit Trail</p>
-                </div>
+                {geminiExplanation && (
+                  <button
+                    onClick={() => playVoiceExplanation(geminiExplanation.reason)}
+                    disabled={isPlayingVoice}
+                    className="px-3 py-1.5 bg-dark-800 text-primary-400 rounded hover:bg-dark-700 transition font-bold text-xs"
+                  >
+                    {isPlayingVoice ? 'Speaking...' : '🔊 Voice Explanation'}
+                  </button>
+                )}
               </div>
 
-              <div className="space-y-3 relative z-10">
-                <div className="flex justify-between items-center pb-2 border-b border-dark-200/50 dark:border-dark-700/50">
-                  <span className="text-sm font-semibold text-dark-600 dark:text-dark-300">Policy Coverage Match</span>
-                  <span className="text-sm font-bold text-dark-800 dark:text-gray-100">{!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? '✗ No Match (Out of scope)' : '✓ Yes (Within limits)'}</span>
+              {isGenerating ? (
+                <div className="py-4 text-center animate-pulse">
+                  <p className="text-sm font-bold text-dark-500">Gemini is analyzing policy clauses and weather data...</p>
                 </div>
-                <div className="flex justify-between items-center pb-2 border-b border-dark-200/50 dark:border-dark-700/50">
-                  <span className="text-sm font-semibold text-dark-600 dark:text-dark-300">Exclusion Triggered</span>
-                  <span className={`text-sm font-bold ${!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'text-danger-500' : 'text-success-500'}`}>
-                    {!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'Yes — Catastrophic Event' : 'No Exclusions'}
-                  </span>
+              ) : geminiExplanation ? (
+                <div className="space-y-4 relative z-10">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-white dark:bg-dark-900/50 rounded-lg border border-dark-100 dark:border-dark-700">
+                      <span className="text-[10px] font-bold uppercase text-dark-500 block mb-1">Reason for Decision</span>
+                      <p className="text-sm font-semibold text-dark-800 dark:text-slate-200">{geminiExplanation.reason}</p>
+                    </div>
+                    <div className="p-3 bg-white dark:bg-dark-900/50 rounded-lg border border-dark-100 dark:border-dark-700">
+                      <span className="text-[10px] font-bold uppercase text-dark-500 block mb-1">Policy Clause Interpretation</span>
+                      <p className="text-sm font-semibold text-dark-800 dark:text-slate-200">{geminiExplanation.policyClause}</p>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-white dark:bg-dark-900/50 rounded-lg border border-dark-100 dark:border-dark-700">
+                    <span className="text-[10px] font-bold uppercase text-dark-500 block mb-1">Risk & Timeline Reasoning</span>
+                    <p className="text-sm font-semibold text-dark-800 dark:text-slate-200">{geminiExplanation.riskReasoning}</p>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center pb-2 border-b border-dark-200/50 dark:border-dark-700/50">
-                  <span className="text-sm font-semibold text-dark-600 dark:text-dark-300">Worker Risk Score</span>
-                  <span className="text-sm font-bold text-dark-800 dark:text-gray-100">
-                    {workers.find(w => w.id === selectedClaim.workerId)?.riskScore || 0.52} / 1.0
-                  </span>
-                </div>
-                <div className="pt-2">
-                  <span className="text-sm font-semibold text-dark-600 dark:text-dark-300 block mb-1">Actuarial Reason / Policy Clause</span>
-                  <p className={`text-sm font-bold p-3 rounded-lg ${!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'bg-danger-100 dark:bg-danger-500/20 text-danger-700 dark:text-danger-300' : 'bg-success-100 dark:bg-success-500/20 text-success-700 dark:text-success-300'}`}>
-                    {!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? `${evaluateClaim({ trigger: selectedClaim.triggerType }).message} - ${evaluateClaim({ trigger: selectedClaim.triggerType }).description}` : "Validation passed. Event matches parametric rules and is within standard risk appetite."}
-                  </p>
-                </div>
-              </div>
+              ) : null}
             </div>
 
             {/* Validation */}

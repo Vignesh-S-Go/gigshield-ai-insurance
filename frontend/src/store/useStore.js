@@ -100,9 +100,54 @@ const useStore = create((set, get) => ({
 
   // Add Claim
   addClaim: (claim) => set((state) => {
-    const newClaims = [claim, ...state.claims];
+    const now = new Date();
+
+    // Feature 8: Fraud Detection (Simple Logic)
+    // Check if worker has filed another claim in the last 24h
+    const recentClaims = state.claims.filter(c => {
+      if (c.workerId !== claim.workerId) return false;
+      const claimDate = new Date(c.date);
+      const diffHours = (now - claimDate) / (1000 * 60 * 60);
+      return diffHours < 24;
+    });
+
+    let finalClaim = { ...claim };
+    let newNotification = null;
+
+    if (recentClaims.length > 0) {
+      finalClaim.status = 'Flagged';
+      if (!finalClaim.auditTrail) finalClaim.auditTrail = [];
+      finalClaim.auditTrail.push("Fraud Alert: Suspicious claim activity! Multiple claims filed from same user in short time.");
+
+      newNotification = {
+        id: Math.random().toString(36).substr(2, 9),
+        icon: '🚨',
+        title: 'Fraud Alert Triggered',
+        message: `Suspicious activity detected for ${claim.workerName} (velocity check failed).`,
+        type: 'danger',
+        time: 'Just now',
+        read: false
+      };
+    } else {
+      // Create a standard notification based on approval/rejection
+      const isRejected = ['Rejected', 'Flagged'].includes(finalClaim.status);
+      newNotification = {
+        id: Math.random().toString(36).substr(2, 9),
+        icon: isRejected ? '🚨' : '✅',
+        title: `Claim ${finalClaim.status.toUpperCase()}`,
+        message: `Claim ${finalClaim.id} ${finalClaim.status.toLowerCase()} for ${finalClaim.workerName}.`,
+        type: isRejected ? 'danger' : 'success',
+        time: 'Just now',
+        read: false
+      };
+    }
+
+    const newClaims = [finalClaim, ...state.claims];
+    const newNotifications = [newNotification, ...state.notifications];
+
     return {
       claims: newClaims,
+      notifications: newNotifications,
       metrics: getDashboardMetrics(state.workers, newClaims),
     };
   }),

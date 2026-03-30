@@ -115,26 +115,38 @@ export default function PoliciesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-50 dark:divide-dark-800">
-              {filtered.slice(0, 20).map(policy => (
-                <tr key={policy.id} className="table-row group">
-                  <td className="px-5 py-3 text-sm font-mono text-dark-400 group-hover:text-primary-500 transition-colors uppercase">{policy.id}</td>
-                  <td className="px-5 py-3 text-sm font-bold text-dark-800 dark:text-slate-200">{policy.workerName}</td>
-                  <td className="px-5 py-3">
-                    <span className={`badge ring-1 ring-inset ${getPlanColor(policy.planType)}`}>{policy.planType}</span>
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-dark-800 dark:text-white">₹{policy.premium} <span className="text-[10px] text-dark-400 font-normal">/wk</span></span>
-                      <span className="text-[10px] text-primary-500 font-bold uppercase tracking-widest">Risk Adjusted</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 text-sm text-dark-600 dark:text-dark-400">{formatCurrency(policy.maxPayout)}</td>
-                  <td className="px-5 py-3">
-                    <span className={`badge ring-1 ring-inset ${getStatusColor(policy.status)}`}>{policy.status}</span>
-                  </td>
-                  <td className="px-5 py-3 text-sm text-dark-500 font-medium">{formatDate(policy.renewalDate)}</td>
-                </tr>
-              ))}
+              {filtered.slice(0, 20).map(policy => {
+                const worker = workers.find(w => w.id === policy.workerId);
+                const basePremium = planDetails[policy.planType].premium;
+                const riskScore = worker?.riskScore || 0.5;
+                const riskColor = riskScore >= 0.7 ? 'text-danger-700 bg-danger-100 dark:text-danger-400 dark:bg-danger-500/20' :
+                  riskScore >= 0.4 ? 'text-warning-700 bg-warning-100 dark:text-warning-400 dark:bg-warning-500/20' :
+                    'text-success-700 bg-success-100 dark:text-success-400 dark:bg-success-500/20';
+
+                return (
+                  <tr key={policy.id} className="table-row group">
+                    <td className="px-5 py-3 text-sm font-mono text-dark-400 group-hover:text-primary-500 transition-colors uppercase">{policy.id}</td>
+                    <td className="px-5 py-3 text-sm font-bold text-dark-800 dark:text-slate-200">{policy.workerName}</td>
+                    <td className="px-5 py-3">
+                      <span className={`badge ring-1 ring-inset ${getPlanColor(policy.planType)}`}>{policy.planType}</span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-sm font-bold text-dark-800 dark:text-white">₹{policy.premium} <span className="text-[10px] text-dark-400 font-normal">Final /wk</span></span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-dark-500 dark:text-dark-400 font-medium">Base: ₹{basePremium}</span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${riskColor}`}>Risk: {(riskScore * 100).toFixed(0)}%</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-dark-600 dark:text-dark-400">{formatCurrency(policy.maxPayout)}</td>
+                    <td className="px-5 py-3">
+                      <span className={`badge ring-1 ring-inset ${getStatusColor(policy.status)}`}>{policy.status}</span>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-dark-500 font-medium">{formatDate(policy.renewalDate)}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

@@ -37,7 +37,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function DashboardPage() {
-  const { metrics, claimsOverTime, payoutsByZone, triggerDistribution, workers, policies } = useStore();
+  const { metrics, claimsOverTime, payoutsByZone, triggerDistribution, workers, policies, notifications } = useStore();
 
   const avgRiskScore = (workers.reduce((sum, w) => sum + (w.riskScore || 0), 0) / (workers.length || 1)).toFixed(2);
   const activePol = policies.filter(p => p.status === 'Active').length;
@@ -186,27 +186,23 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 glass-card rounded-2xl p-5">
           <h3 className="text-base font-semibold text-dark-800 dark:text-dark-200 mb-4">Live Event & Alert Feed</h3>
           <div className="space-y-3">
-            {[
-              { icon: '🚨', text: 'Claim #102 rejected (Pandemic Exclusion Clause 4.2)', time: '2 min ago', type: 'danger' },
-              { icon: '💰', text: 'Worker GS-2B4A premium increased by 15% due to high risk behavior', time: '5 min ago', type: 'warning' },
-              { icon: '☔', text: 'Weather conditions increasing risk in Mumbai zone by 32%', time: '12 min ago', type: 'warning' },
-              { icon: '✅', text: 'Claim GS-9A2X approved (Parametric Rainfall Threshold Met)', time: '18 min ago', type: 'success' },
-              { icon: '🛡️', text: 'High fraud risk detected in Delhi zone (Suspicious Location Clustering)', time: '25 min ago', type: 'danger' },
-              { icon: '🌙', text: 'Night deliveries consistently increasing claim probability by 23%', time: '32 min ago', type: 'info' },
-              { icon: '📈', text: 'Auto-renewal processed for 42 Standard policies in Bangalore', time: '45 min ago', type: 'info' },
-            ].map((item, i) => (
-              <div
-                key={i}
-                className={`flex items-start gap-3 p-3 rounded-xl transition-colors hover:bg-dark-50 dark:hover:bg-dark-700/30`}
-                style={{ animationDelay: `${i * 60}ms` }}
-              >
-                <span className="text-lg flex-shrink-0">{item.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-dark-700 dark:text-dark-300">{item.text}</p>
-                  <p className="text-xs text-dark-400 dark:text-dark-500 mt-0.5">{item.time}</p>
+            {notifications.slice(0, 7).map((item, i) => {
+              const iconMap = { danger: '🚨', warning: '⚠️', success: '✅', info: 'ℹ️' };
+              const icon = item.icon || iconMap[item.type] || '🔔';
+              return (
+                <div
+                  key={item.id || i}
+                  className={`flex items-start gap-3 p-3 rounded-xl transition-colors hover:bg-dark-50 dark:hover:bg-dark-700/30`}
+                  style={{ animationDelay: `${i * 60}ms` }}
+                >
+                  <span className="text-lg flex-shrink-0">{icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-dark-700 dark:text-dark-300"><strong>{item.title}</strong>: {item.message}</p>
+                    <p className="text-xs text-dark-400 dark:text-dark-500 mt-0.5">{item.time}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>

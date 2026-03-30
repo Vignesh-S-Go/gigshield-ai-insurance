@@ -11,10 +11,10 @@ export const evaluateClaim = (claimData) => {
   const { trigger, location, eventDate } = claimData;
 
   const standardExclusions = [
-    { type: 'War', code: 'EX-WAR-01', description: 'Loss due to acts of war or military conflict.' },
-    { type: 'Civil Unrest', code: 'EX-CIV-03', description: 'Loss due to riots, strikes, or civil disobedience.' },
-    { type: 'Pandemic', code: 'EX-PAN-02', description: 'Pandemic Business Interruption or government mandated lockdowns.' },
-    { type: 'Terrorism', code: 'EX-TER-04', description: 'Loss resulting from acts of terrorism.' }
+    { type: 'War', code: 'Clause 9.1', message: 'Rejected due to War Exclusion', description: 'Loss due to acts of war or military conflict.' },
+    { type: 'Civil Unrest', code: 'Clause 3.4', message: 'Rejected due to Civil Unrest Exclusion', description: 'Loss due to riots, strikes, or civil disobedience.' },
+    { type: 'Pandemic', code: 'Clause 4.2', message: 'Rejected due to Pandemic Exclusion', description: 'Pandemic Business Interruption or government mandated lockdowns.' },
+    { type: 'Terrorism', code: 'Clause 7.8', message: 'Rejected due to Terrorism Exclusion', description: 'Loss resulting from acts of terrorism.' }
   ];
 
   const exclusion = standardExclusions.find(e => e.type === trigger);
@@ -23,7 +23,7 @@ export const evaluateClaim = (claimData) => {
     return {
       status: 'REJECTED',
       exclusionCode: exclusion.code,
-      message: `Exclusion Applied: ${exclusion.code} - ${exclusion.type}`,
+      message: `${exclusion.message} (${exclusion.code})`,
       description: exclusion.description,
       passed: false
     };

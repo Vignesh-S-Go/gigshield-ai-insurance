@@ -15,9 +15,10 @@ import {
     Wallet,
     Zap
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../components/Modal';
+import { aiService } from '../services/aiService';
 import useStore from '../store/useStore';
 import { formatCurrency } from '../utils/helpers';
 import { evaluateClaim } from '../utils/rulesEngine';
@@ -42,6 +43,23 @@ export default function WorkerApp() {
     // Gamification & Risk State
     const safetyScore = Math.floor((1 - (worker?.riskScore || 0.5)) * 100);
     const safetyDiscount = safetyScore > 80 ? 5 : 0;
+
+    // AI States
+    const [realTimeAlert, setRealTimeAlert] = useState("Loading live parametric sensor data...");
+    const [twinPrediction, setTwinPrediction] = useState("AI is predicting risk trajectory based on historical patterns...");
+
+    useEffect(() => {
+        if (activeTab === 'dashboard' && worker) {
+            aiService.generateRiskAlert(
+                { weather: 'Tracking active storm cells', route: worker.city },
+                { shift: 'Active night delivery route', previousIncidents: worker.claimsFired || 0 }
+            ).then(res => setRealTimeAlert(res));
+        }
+        if (activeTab === 'risk' && worker) {
+            aiService.simulateDigitalTwin(worker)
+                .then(res => setTwinPrediction(res));
+        }
+    }, [activeTab, worker]);
 
     // Financial Ledger items
     const ledger = useMemo(() => {
@@ -194,8 +212,8 @@ export default function WorkerApp() {
                                 <Zap className="w-8 h-8 text-primary-400 flex-shrink-0 animate-pulse" />
                                 <div>
                                     <h3 className="text-sm font-bold text-primary-400 mb-1">AI Risk Assistant</h3>
-                                    <p className="text-xs text-slate-300 leading-relaxed">
-                                        Heavy traffic & light rain spotted on your route in {worker?.city}. Drive safely.
+                                    <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                                        {realTimeAlert}
                                         <strong className="text-white block mt-1">Parametric weather triggers are armed.</strong>
                                     </p>
                                 </div>
@@ -282,6 +300,10 @@ export default function WorkerApp() {
                                     <span className="px-3 py-1 bg-dark-700 rounded-full text-xs font-bold text-dark-300">🏥 Accident</span>
                                 </div>
                             </div>
+
+                            <button onClick={() => alert("Redirecting to Razorpay secure gateway connection...")} className="w-full btn-primary py-4 font-black justify-center mt-6">
+                                🔒 Pay Premium via Razorpay
+                            </button>
                         </div>
                     )}
 
@@ -338,6 +360,21 @@ export default function WorkerApp() {
                         <div className="p-5 space-y-5 animate-fade-in flex flex-col items-center">
                             <div className="w-full text-left">
                                 <h2 className="text-lg font-bold text-white">AI Safety Intelligence</h2>
+                            </div>
+
+                            {/* Digital Twin Simulation */}
+                            <div className="w-full bg-dark-800 border-2 border-primary-500/30 p-5 rounded-2xl relative overflow-hidden shadow-lg shadow-primary-500/10">
+                                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                                    <Activity className="w-24 h-24 text-primary-500" />
+                                </div>
+                                <h3 className="text-sm font-black text-white uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <Activity className="w-4 h-4 text-primary-400" /> Digital Twin Projection
+                                </h3>
+                                <div className="p-4 bg-dark-900/50 rounded-xl border border-dark-700">
+                                    <p className="text-sm text-slate-300 leading-relaxed font-medium relative z-10 italic">
+                                        "{twinPrediction}"
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Gamification Ring */}
@@ -423,19 +460,42 @@ export default function WorkerApp() {
                         <p className="font-bold text-dark-800 dark:text-white">AI Cross-checking triggers & policy...</p>
                     </div>
                 ) : claimStatus === 'success' || claimStatus === 'rejected' ? (
-                    <div className="py-8 flex flex-col items-center justify-center gap-4 text-center">
+                    <div className="py-2 flex flex-col items-center justify-center gap-4 text-center w-full">
                         {claimStatus === 'success' ? (
                             <CheckCircle2 className="w-16 h-16 text-success-500 animate-bounce" />
                         ) : (
                             <ShieldAlert className="w-16 h-16 text-danger-500" />
                         )}
-                        <div>
-                            <p className="text-xl font-bold text-dark-900 dark:text-white">
-                                {claimStatus === 'success' ? 'Claim Authorized!' : 'Claim Flagged'}
+                        <div className="w-full">
+                            <p className="text-xl font-black text-dark-900 dark:text-white mb-4 uppercase tracking-widest">
+                                {claimStatus === 'success' ? 'Claim Approved' : 'Claim Rejected'}
                             </p>
-                            <p className={`text-sm mt-2 p-3 rounded-lg ${claimStatus === 'success' ? 'bg-success-50 dark:bg-success-500/10 text-success-700' : 'bg-danger-50 dark:bg-danger-500/10 text-danger-700'}`}>
-                                {claimExplanation}
-                            </p>
+
+                            <div className="bg-dark-50 dark:bg-dark-800 border border-dark-200 dark:border-dark-700 rounded-xl p-4 text-left w-full space-y-3 mb-4">
+                                <div className="flex justify-between items-center border-b border-dark-200 dark:border-dark-700 pb-2">
+                                    <span className="text-xs text-dark-500 dark:text-slate-400 font-semibold uppercase tracking-wider">Policy Match</span>
+                                    <span className={`text-xs font-bold ${claimStatus === 'success' ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400'}`}>{claimStatus === 'success' ? 'True (Within Limits)' : 'False (Out of bounds)'}</span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-dark-200 dark:border-dark-700 pb-2">
+                                    <span className="text-xs text-dark-500 dark:text-slate-400 font-semibold uppercase tracking-wider">Exclusion Triggered</span>
+                                    <span className={`text-xs font-bold ${claimStatus === 'success' ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400'}`}>{claimStatus === 'success' ? 'False' : 'True'}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs text-dark-500 dark:text-slate-400 font-semibold uppercase tracking-wider">Risk Score Used</span>
+                                    <span className="text-xs font-bold text-dark-800 dark:text-white">{worker?.riskScore || 0.5} / 1.0</span>
+                                </div>
+                            </div>
+
+                            <div className="text-left mt-1">
+                                <span className="text-[10px] text-dark-400 dark:text-slate-500 font-bold uppercase tracking-widest block mb-1">Reason for Decision</span>
+                                <p className={`text-sm p-3 rounded-lg border font-semibold ${claimStatus === 'success' ? 'bg-success-50 dark:bg-success-500/10 border-success-200 dark:border-success-500/30 text-success-700 dark:text-success-400' : 'bg-danger-50 dark:bg-danger-500/10 border-danger-200 dark:border-danger-500/30 text-danger-700 dark:text-danger-400'}`}>
+                                    {claimExplanation}
+                                </p>
+                            </div>
+
+                            <button onClick={() => setShowClaimModal(false)} className="w-full mt-6 btn-primary py-3 justify-center">
+                                Close Window
+                            </button>
                         </div>
                     </div>
                 ) : (
