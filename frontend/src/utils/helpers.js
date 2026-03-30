@@ -19,28 +19,28 @@ export function formatDate(dateStr) {
 }
 
 export function getRiskColor(score) {
-  if (score >= 0.7) return { bg: 'bg-danger-50', text: 'text-danger-600', dark: 'dark:bg-danger-600/20 dark:text-danger-400' };
-  if (score >= 0.4) return { bg: 'bg-warning-50', text: 'text-warning-600', dark: 'dark:bg-warning-500/20 dark:text-warning-400' };
-  return { bg: 'bg-success-50', text: 'text-success-600', dark: 'dark:bg-success-600/20 dark:text-success-400' };
+  if (score >= 0.7) return { bg: 'bg-danger-50 text-danger-700', text: 'text-danger-700', dark: 'dark:bg-danger-500/20 dark:text-danger-400 dark:border-danger-500/20' };
+  if (score >= 0.4) return { bg: 'bg-warning-50 text-warning-700', text: 'text-warning-700', dark: 'dark:bg-warning-500/20 dark:text-warning-400 dark:border-warning-500/20' };
+  return { bg: 'bg-success-50 text-success-700', text: 'text-success-700', dark: 'dark:bg-success-500/20 dark:text-success-400 dark:border-success-500/20' };
 }
 
 export function getStatusColor(status) {
   const colors = {
-    Approved: 'bg-primary-50 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300',
-    Paid: 'bg-success-50 text-success-700 dark:bg-success-600/20 dark:text-success-300',
-    Flagged: 'bg-danger-50 text-danger-700 dark:bg-danger-600/20 dark:text-danger-300',
-    Pending: 'bg-warning-50 text-warning-700 dark:bg-warning-500/20 dark:text-warning-300',
-    Active: 'bg-success-50 text-success-700 dark:bg-success-600/20 dark:text-success-300',
-    Expired: 'bg-dark-100 text-dark-500 dark:bg-dark-700 dark:text-dark-400',
-    active: 'bg-success-50 text-success-700 dark:bg-success-600/20 dark:text-success-300',
-    inactive: 'bg-dark-100 text-dark-500 dark:bg-dark-700 dark:text-dark-400',
+    Approved: 'bg-primary-50 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300 border-primary-200/50',
+    Paid: 'bg-success-50 text-success-700 dark:bg-success-500/20 dark:text-success-300 border-success-200/50',
+    Flagged: 'bg-danger-50 text-danger-700 dark:bg-danger-500/20 dark:text-danger-300 border-danger-200/50',
+    Pending: 'bg-warning-50 text-warning-700 dark:bg-warning-500/20 dark:text-warning-300 border-warning-200/50',
+    Active: 'bg-success-50 text-success-700 dark:bg-success-500/20 dark:text-success-300 border-success-200/50',
+    Expired: 'bg-dark-100 text-dark-500 dark:bg-dark-800 dark:text-dark-400 border-dark-200/50',
+    active: 'bg-success-50 text-success-700 dark:bg-success-500/20 dark:text-success-300 border-success-200/50',
+    inactive: 'bg-dark-100 text-dark-500 dark:bg-dark-800 dark:text-dark-400 border-dark-200/50',
   };
   return colors[status] || 'bg-dark-100 text-dark-600';
 }
 
 export function getPlanColor(plan) {
   const colors = {
-    Basic: 'bg-dark-100 text-dark-600 dark:bg-dark-700 dark:text-dark-300',
+    Basic: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
     Standard: 'bg-primary-50 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300',
     Pro: 'bg-warning-50 text-warning-700 dark:bg-warning-500/20 dark:text-warning-300',
   };

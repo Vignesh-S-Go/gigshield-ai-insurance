@@ -1,20 +1,35 @@
 import { create } from 'zustand';
 import {
-  generateWorkers,
   generateClaims,
   generatePolicies,
-  getDashboardMetrics,
+  generateWorkers,
+  getAIInsights,
   getClaimsOverTime,
+  getDashboardMetrics,
+  getNotifications,
   getPayoutsByZone,
   getTriggerDistribution,
-  getAIInsights,
   getZoneRiskData,
-  getNotifications,
+  planDetails
 } from '../utils/mockData';
+import { calculateRiskAdjustedPremium } from '../utils/pricingModel';
 
 const workers = generateWorkers(50);
 const claims = generateClaims(workers, 80);
-const policies = generatePolicies(workers);
+const rawPolicies = generatePolicies(workers);
+
+// Recalculate premiums using the actuarial model
+const policies = rawPolicies.map(p => {
+  const worker = workers.find(w => w.id === p.workerId);
+  const baseRate = planDetails[p.planType].premium;
+  const workerRiskScore = worker?.riskScore || 0.5;
+  const city = p.city || worker?.city || 'Other';
+
+  return {
+    ...p,
+    premium: calculateRiskAdjustedPremium(baseRate, workerRiskScore, city),
+  };
+});
 
 const useStore = create((set, get) => ({
   // Auth
@@ -32,8 +47,10 @@ const useStore = create((set, get) => ({
     const newMode = !state.darkMode;
     if (newMode) {
       document.documentElement.classList.add('dark');
+      document.documentElement.setAttribute('data-theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      document.documentElement.setAttribute('data-theme', 'light');
     }
     return { darkMode: newMode };
   }),
@@ -54,12 +71,18 @@ const useStore = create((set, get) => ({
   zoneRiskData: getZoneRiskData(),
   notifications: getNotifications(),
 
+  // Simulation: Current Worker for the 'Worker App'
+  currentWorkerId: workers[0].id,
+  setCurrentWorker: (id) => set({ currentWorkerId: id }),
+
   // Loading state
   loading: false,
   setLoading: (loading) => set({ loading }),
 
-  // Workers
+  // Actions
   getWorkerById: (id) => get().workers.find(w => w.id === id),
+  getPoliciesByWorkerId: (id) => get().policies.filter(p => p.workerId === id),
+  getClaimsByWorkerId: (id) => get().claims.filter(c => c.workerId === id),
 
   // Notifications
   markNotificationRead: (id) => set((state) => ({
@@ -74,6 +97,15 @@ const useStore = create((set, get) => ({
   addPolicy: (policy) => set((state) => ({
     policies: [policy, ...state.policies],
   })),
+
+  // Add Claim
+  addClaim: (claim) => set((state) => {
+    const newClaims = [claim, ...state.claims];
+    return {
+      claims: newClaims,
+      metrics: getDashboardMetrics(state.workers, newClaims),
+    };
+  }),
 
   // Payout simulation
   payoutStatus: null,

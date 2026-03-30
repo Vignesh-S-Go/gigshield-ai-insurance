@@ -10,10 +10,10 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-50 dark:bg-dark-950 transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-dark-900 transition-colors duration-300">
       <Sidebar />
       <main className={`transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'ml-[72px]' : 'ml-[260px]'}`}>
-        <div className="p-6 lg:p-8 max-w-[1600px]">
+        <div className="p-6 lg:p-10 max-w-7xl mx-auto min-h-screen">
           <Outlet />
         </div>
       </main>

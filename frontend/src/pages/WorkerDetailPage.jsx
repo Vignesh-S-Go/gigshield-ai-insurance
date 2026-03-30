@@ -1,18 +1,37 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Phone, MapPin, Star, Truck, TrendingUp } from 'lucide-react';
+import { Activity, ArrowLeft, FileText, MapPin, Phone, Shield, Star, TrendingUp, Truck } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  PolarAngleAxis,
+  PolarGrid,
   PolarRadiusAxis, Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis, YAxis,
 } from 'recharts';
 import useStore from '../store/useStore';
-import { formatCurrency, formatDate, getStatusColor, getRiskColor, getTriggerIcon } from '../utils/helpers';
+import { formatCurrency, formatDate, getRiskColor, getStatusColor, getTriggerIcon } from '../utils/helpers';
 
 export default function WorkerDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getWorkerById } = useStore();
+  const { getWorkerById, policies } = useStore();
   const worker = getWorkerById(id);
+  const policy = policies.find(p => p.workerId === id);
+
+  // Actuarial Calculations
+  const totalPayouts = worker?.claimsHistory
+    .filter(c => c.status === 'Approved' || c.status === 'Paid')
+    .reduce((sum, c) => sum + c.amount, 0) || 0;
+
+  // Assume worker has been with us for weighted history
+  const weeksInsured = 12;
+  const totalPremiums = (policy?.premium || 49) * weeksInsured;
+  const lossRatio = totalPremiums > 0 ? (totalPayouts / totalPremiums).toFixed(2) : 0;
+  const deductible = 500;
 
   if (!worker) {
     return (
@@ -100,7 +119,49 @@ export default function WorkerDetailPage() {
         ))}
       </div>
 
-      {/* Charts */}
+      {/* Underwriting Metrics */}
+      <div className="glass-card rounded-2xl p-6 mb-6 overflow-hidden relative">
+        <div className="absolute top-0 right-0 p-8 opacity-5">
+          <Shield className="w-32 h-32" />
+        </div>
+        <div className="flex items-center gap-2 mb-6">
+          <div className="p-2 rounded-lg bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-400">
+            <Activity className="w-5 h-5" />
+          </div>
+          <h3 className="text-lg font-bold text-dark-800 dark:text-dark-200">Underwriting Metrics</h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-4 rounded-xl bg-dark-50 dark:bg-dark-800/40 border border-dark-100 dark:border-dark-700">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-dark-400 uppercase tracking-wider font-semibold">Loss Ratio</span>
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${parseFloat(lossRatio) > 0.7 ? 'bg-danger-50 text-danger-600' : 'bg-success-50 text-success-600'}`}>
+                {parseFloat(lossRatio) > 0.7 ? 'High Risk' : 'Healthy'}
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-dark-800 dark:text-dark-200">{lossRatio}</p>
+            <p className="text-[10px] text-dark-400 mt-1">Payouts / Premiums (Total Exposure)</p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-dark-50 dark:bg-dark-800/40 border border-dark-100 dark:border-dark-700">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-dark-400 uppercase tracking-wider font-semibold">Standard Deductible</span>
+              <FileText className="w-3.5 h-3.5 text-dark-300" />
+            </div>
+            <p className="text-2xl font-bold text-dark-800 dark:text-dark-200">₹{deductible}</p>
+            <p className="text-[10px] text-dark-400 mt-1">₹{deductible} 'Worker Share' per claim</p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-dark-50 dark:bg-dark-800/40 border border-dark-100 dark:border-dark-700">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-dark-400 uppercase tracking-wider font-semibold">Calculated Premium</span>
+              <TrendingUp className="w-3.5 h-3.5 text-primary-400" />
+            </div>
+            <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">₹{policy?.premium || '---'}</p>
+            <p className="text-[10px] text-dark-400 mt-1">Actuarial Risk-Adjusted Weekly Rate</p>
+          </div>
+        </div>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Earnings History */}
         <div className="glass-card rounded-2xl p-5">

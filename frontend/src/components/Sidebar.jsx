@@ -1,8 +1,19 @@
-import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, FileText, Zap, Brain, Wallet, Map,
-  ChevronLeft, ChevronRight, LogOut, Shield, Moon, Sun,
+  Brain,
+  ChevronLeft, ChevronRight,
+  FileText,
+  LayoutDashboard,
+  LogOut,
+  Map,
+  Moon,
+  Shield,
+  Smartphone,
+  Sun,
+  Users,
+  Wallet,
+  Zap,
 } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 
 const navItems = [
@@ -13,6 +24,7 @@ const navItems = [
   { path: '/ai-insights', icon: Brain, label: 'AI Insights' },
   { path: '/payouts', icon: Wallet, label: 'Payouts' },
   { path: '/zone-risk', icon: Map, label: 'Zone Risk' },
+  { path: '/worker-app', icon: Smartphone, label: 'Worker App UI' },
 ];
 
 export default function Sidebar() {

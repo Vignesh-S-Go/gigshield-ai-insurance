@@ -1,21 +1,37 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import DashboardLayout from './layouts/DashboardLayout';
-import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import WorkersPage from './pages/WorkersPage';
-import WorkerDetailPage from './pages/WorkerDetailPage';
-import PoliciesPage from './pages/PoliciesPage';
-import ClaimsPage from './pages/ClaimsPage';
-import AIInsightsPage from './pages/AIInsightsPage';
-import PayoutsPage from './pages/PayoutsPage';
-import ZoneRiskPage from './pages/ZoneRiskPage';
+import { useEffect } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import './index.css';
+import DashboardLayout from './layouts/DashboardLayout';
+import AIInsightsPage from './pages/AIInsightsPage';
+import ClaimsPage from './pages/ClaimsPage';
+import DashboardPage from './pages/DashboardPage';
+import LoginPage from './pages/LoginPage';
+import PayoutsPage from './pages/PayoutsPage';
+import PoliciesPage from './pages/PoliciesPage';
+import WorkerApp from './pages/WorkerApp';
+import WorkerDetailPage from './pages/WorkerDetailPage';
+import WorkersPage from './pages/WorkersPage';
+import ZoneRiskPage from './pages/ZoneRiskPage';
+import useStore from './store/useStore';
 
 export default function App() {
+  const { darkMode } = useStore();
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  }, [darkMode]);
+
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LoginPage />} />
+        <Route path="/worker-app" element={<WorkerApp />} />
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/workers" element={<WorkersPage />} />

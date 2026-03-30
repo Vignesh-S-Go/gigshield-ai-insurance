@@ -1,9 +1,9 @@
+import { ChevronDown, Download, Eye, Filter, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Download, Eye, ChevronDown } from 'lucide-react';
 import Header from '../components/Header';
 import useStore from '../store/useStore';
-import { formatCurrency, getStatusColor, getPlanColor, getRiskColor, exportToCSV } from '../utils/helpers';
+import { exportToCSV, formatCurrency, getPlanColor, getRiskColor, getStatusColor } from '../utils/helpers';
 
 export default function WorkersPage() {
   const { workers } = useStore();
@@ -132,35 +132,35 @@ export default function WorkersPage() {
               {filtered.slice(0, 20).map((worker) => {
                 const risk = getRiskColor(worker.riskScore);
                 return (
-                  <tr key={worker.id} className="table-row">
-                    <td className="px-5 py-4">
+                  <tr key={worker.id} className="table-row group">
+                    <td className="px-5 py-2">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                           {worker.name.charAt(0)}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-dark-800 dark:text-dark-200">{worker.name}</p>
-                          <p className="text-xs text-dark-400">{worker.id}</p>
+                          <p className="text-sm font-bold text-dark-800 dark:text-dark-100">{worker.name}</p>
+                          <p className="text-[10px] text-dark-400 font-mono uppercase tracking-tighter">{worker.id}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-sm text-dark-600 dark:text-dark-400">{worker.city}</td>
-                    <td className="px-5 py-4 text-sm text-dark-600 dark:text-dark-400">{worker.deliveryPlatform}</td>
-                    <td className="px-5 py-4 text-sm font-semibold text-dark-800 dark:text-dark-200">{formatCurrency(worker.weeklyEarnings)}</td>
-                    <td className="px-5 py-4">
-                      <span className={`badge ${getPlanColor(worker.plan)}`}>{worker.plan}</span>
+                    <td className="px-5 py-2 text-sm text-dark-600 dark:text-dark-400">{worker.city}</td>
+                    <td className="px-5 py-2 text-sm text-dark-600 dark:text-dark-400">{worker.deliveryPlatform}</td>
+                    <td className="px-5 py-2 text-sm font-semibold text-dark-800 dark:text-dark-200">{formatCurrency(worker.weeklyEarnings)}</td>
+                    <td className="px-5 py-2">
+                      <span className={`badge ring-1 ring-inset ${getPlanColor(worker.plan)}`}>{worker.plan}</span>
                     </td>
-                    <td className="px-5 py-4">
-                      <span className={`badge ${risk.bg} ${risk.text} ${risk.dark}`}>
+                    <td className="px-5 py-2">
+                      <span className={`badge ring-1 ring-inset ${risk.bg} ${risk.text} ${risk.dark}`}>
                         {(worker.riskScore * 100).toFixed(0)}%
                       </span>
                     </td>
-                    <td className="px-5 py-4">
-                      <span className={`badge ${getStatusColor(worker.status)}`}>
+                    <td className="px-5 py-2">
+                      <span className={`badge ring-1 ring-inset ${getStatusColor(worker.status)}`}>
                         {worker.status === 'active' ? '● Active' : '○ Inactive'}
                       </span>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-2">
                       <button
                         onClick={() => navigate(`/workers/${worker.id}`)}
                         className="p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-700 transition-colors text-dark-400 hover:text-primary-500"

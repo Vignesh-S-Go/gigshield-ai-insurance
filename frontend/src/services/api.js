@@ -32,28 +32,29 @@ const api = {
   // Premium Calculation (AI Mock)
   calculatePremium: async ({ plan, city, riskScore, weeklyEarnings }) => {
     await delay(1500);
-    const basePremiums = { Basic: 99, Standard: 199, Pro: 349 };
-    const base = basePremiums[plan];
-    const cityMultiplier = {
-      Mumbai: 1.3, Delhi: 1.25, Chennai: 1.2, Bangalore: 1.15,
-      Kolkata: 1.1, Pune: 1.05, Hyderabad: 1.0, Jaipur: 1.1,
-      Ahmedabad: 1.0, Lucknow: 0.95,
-    }[city] || 1.0;
-    const riskMultiplier = 1 + (riskScore * 0.5);
-    const earningsMultiplier = weeklyEarnings > 5000 ? 1.1 : 1.0;
-    
-    const premium = Math.round(base * cityMultiplier * riskMultiplier * earningsMultiplier);
-    
+    const basePremiums = { Basic: 25, Standard: 49, Pro: 79 };
+    const base = basePremiums[plan] || 25;
+
+    let zoneFactor = 1.0;
+    const cityUpper = city?.toUpperCase();
+    if (cityUpper === 'MUMBAI' || cityUpper === 'DELHI') {
+      zoneFactor = 1.2;
+    } else if (cityUpper === 'BANGALORE') {
+      zoneFactor = 1.1;
+    }
+
+    const premium = (base * zoneFactor) + (riskScore * 0.15);
+
     return {
       success: true,
-      premium,
+      premium: Math.round(premium * 100) / 100,
       breakdown: {
         basePremium: base,
-        cityAdjustment: `${((cityMultiplier - 1) * 100).toFixed(0)}%`,
-        riskAdjustment: `${((riskMultiplier - 1) * 100).toFixed(0)}%`,
-        earningsAdjustment: `${((earningsMultiplier - 1) * 100).toFixed(0)}%`,
+        cityAdjustment: `${((zoneFactor - 1) * 100).toFixed(0)}%`,
+        riskAdjustment: `${(riskScore * 0.15).toFixed(2)} pts`,
+        earningsAdjustment: '0%',
       },
-      aiConfidence: (Math.random() * 15 + 85).toFixed(1) + '%',
+      aiConfidence: (Math.random() * 10 + 90).toFixed(1) + '%',
     };
   },
 

@@ -1,12 +1,13 @@
+import { ChevronDown, Download, Eye, Search, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
-import { Search, Filter, Download, Eye, ChevronDown } from 'lucide-react';
 import Header from '../components/Header';
 import Modal from '../components/Modal';
 import useStore from '../store/useStore';
-import { formatCurrency, getStatusColor, formatDate, getTriggerIcon, exportToCSV } from '../utils/helpers';
+import { exportToCSV, formatCurrency, formatDate, getStatusColor, getTriggerIcon } from '../utils/helpers';
+import { evaluateClaim } from '../utils/rulesEngine';
 
 export default function ClaimsPage() {
-  const { claims } = useStore();
+  const { claims, workers } = useStore();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [triggerFilter, setTriggerFilter] = useState('All');
@@ -85,18 +86,18 @@ export default function ClaimsPage() {
             <tbody className="divide-y divide-dark-50 dark:divide-dark-800">
               {filtered.slice(0, 20).map(claim => (
                 <tr key={claim.id} className="table-row">
-                  <td className="px-5 py-4 text-sm font-mono text-dark-500">{claim.id}</td>
-                  <td className="px-5 py-4 text-sm font-medium text-dark-800 dark:text-dark-200">{claim.workerName}</td>
-                  <td className="px-5 py-4 text-sm text-dark-500">{claim.workerCity}</td>
-                  <td className="px-5 py-4 text-sm text-dark-600 dark:text-dark-400">
+                  <td className="px-5 py-2.5 text-sm font-mono text-dark-500">{claim.id}</td>
+                  <td className="px-5 py-2.5 text-sm font-medium text-dark-800 dark:text-dark-200">{claim.workerName}</td>
+                  <td className="px-5 py-2.5 text-sm text-dark-500">{claim.workerCity}</td>
+                  <td className="px-5 py-2.5 text-sm text-dark-600 dark:text-dark-400">
                     {getTriggerIcon(claim.triggerType)} {claim.triggerType}
                   </td>
-                  <td className="px-5 py-4">
-                    <span className={`badge ${getStatusColor(claim.status)}`}>{claim.status}</span>
+                  <td className="px-5 py-2.5">
+                    <span className={`badge ring-1 ring-inset ${getStatusColor(claim.status)}`}>{claim.status}</span>
                   </td>
-                  <td className="px-5 py-4 text-sm font-semibold text-dark-800 dark:text-dark-200">{formatCurrency(claim.payoutAmount)}</td>
-                  <td className="px-5 py-4 text-sm text-dark-500">{formatDate(claim.date)}</td>
-                  <td className="px-5 py-4">
+                  <td className="px-5 py-2.5 text-sm font-semibold text-dark-800 dark:text-dark-200">{formatCurrency(claim.payoutAmount)}</td>
+                  <td className="px-5 py-2.5 text-sm text-dark-500">{formatDate(claim.date)}</td>
+                  <td className="px-5 py-2.5">
                     <button onClick={() => setSelectedClaim(claim)} className="p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-700 transition-colors text-dark-400 hover:text-primary-500">
                       <Eye className="w-4 h-4" />
                     </button>
@@ -144,6 +145,44 @@ export default function ClaimsPage() {
                     <span className="text-sm font-semibold text-dark-700 dark:text-dark-300">{val}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Claim Decision Explainability Panel */}
+            <div className={`p-5 rounded-xl border-2 ${!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'border-danger-500 bg-danger-50 dark:bg-danger-500/10' : 'border-success-500 bg-success-50 dark:bg-success-500/10'} relative overflow-hidden`}>
+              <div className="flex items-center gap-3 mb-4 relative z-10">
+                <div className={`p-2 rounded-lg ${!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'bg-danger-100 dark:bg-danger-500/20 text-danger-600' : 'bg-success-100 dark:bg-success-500/20 text-success-600'}`}>
+                  {!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? <ShieldAlert className="w-6 h-6" /> : <ShieldCheck className="w-6 h-6" />}
+                </div>
+                <div>
+                  <h4 className="text-lg font-black text-dark-800 dark:text-gray-100">Decision: {!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'REJECTED' : 'APPROVED'}</h4>
+                  <p className="text-[10px] text-dark-500 uppercase tracking-widest font-semibold mt-0.5">Explainable AI Audit Trail</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 relative z-10">
+                <div className="flex justify-between items-center pb-2 border-b border-dark-200/50 dark:border-dark-700/50">
+                  <span className="text-sm font-semibold text-dark-600 dark:text-dark-300">Policy Coverage Match</span>
+                  <span className="text-sm font-bold text-dark-800 dark:text-gray-100">{!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? '✗ No Match (Out of scope)' : '✓ Yes (Within limits)'}</span>
+                </div>
+                <div className="flex justify-between items-center pb-2 border-b border-dark-200/50 dark:border-dark-700/50">
+                  <span className="text-sm font-semibold text-dark-600 dark:text-dark-300">Exclusion Triggered</span>
+                  <span className={`text-sm font-bold ${!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'text-danger-500' : 'text-success-500'}`}>
+                    {!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'Yes — Catastrophic Event' : 'No Exclusions'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pb-2 border-b border-dark-200/50 dark:border-dark-700/50">
+                  <span className="text-sm font-semibold text-dark-600 dark:text-dark-300">Worker Risk Score</span>
+                  <span className="text-sm font-bold text-dark-800 dark:text-gray-100">
+                    {workers.find(w => w.id === selectedClaim.workerId)?.riskScore || 0.52} / 1.0
+                  </span>
+                </div>
+                <div className="pt-2">
+                  <span className="text-sm font-semibold text-dark-600 dark:text-dark-300 block mb-1">Actuarial Reason / Policy Clause</span>
+                  <p className={`text-sm font-bold p-3 rounded-lg ${!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? 'bg-danger-100 dark:bg-danger-500/20 text-danger-700 dark:text-danger-300' : 'bg-success-100 dark:bg-success-500/20 text-success-700 dark:text-success-300'}`}>
+                    {!evaluateClaim({ trigger: selectedClaim.triggerType }).passed ? `${evaluateClaim({ trigger: selectedClaim.triggerType }).message} - ${evaluateClaim({ trigger: selectedClaim.triggerType }).description}` : "Validation passed. Event matches parametric rules and is within standard risk appetite."}
+                  </p>
+                </div>
               </div>
             </div>
 
