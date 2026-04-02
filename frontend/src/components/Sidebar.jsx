@@ -18,13 +18,14 @@ import useStore from '../store/useStore';
 
 const navItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { path: '/users', icon: Users, label: 'Users' },
   { path: '/workers', icon: Users, label: 'Workers' },
   { path: '/policies', icon: FileText, label: 'Policies' },
   { path: '/claims', icon: Zap, label: 'Claims' },
   { path: '/ai-insights', icon: Brain, label: 'AI Insights' },
   { path: '/payouts', icon: Wallet, label: 'Payouts' },
   { path: '/zone-risk', icon: Map, label: 'Zone Risk' },
-  { path: '/worker-app', icon: Smartphone, label: 'Worker App UI' },
+  { path: '/worker-dashboard', icon: Smartphone, label: 'Worker Dashboard' },
 ];
 
 export default function Sidebar() {

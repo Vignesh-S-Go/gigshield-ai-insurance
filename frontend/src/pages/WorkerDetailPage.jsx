@@ -1,4 +1,5 @@
 import { Activity, ArrowLeft, FileText, MapPin, Phone, Shield, Star, TrendingUp, Truck } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Bar,
@@ -20,18 +21,41 @@ import { formatCurrency, formatDate, getRiskColor, getStatusColor, getTriggerIco
 export default function WorkerDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getWorkerById, policies } = useStore();
-  const worker = getWorkerById(id);
-  const policy = policies.find(p => p.workerId === id);
+  const { getWorkerDetail } = useStore();
+  const [worker, setWorker] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWorkerDetail = async () => {
+      try {
+        const data = await getWorkerDetail(id);
+        setWorker(data);
+      } catch (error) {
+        console.error('Failed to fetch worker:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWorkerDetail();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
 
   // Actuarial Calculations
   const totalPayouts = worker?.claimsHistory
-    .filter(c => c.status === 'Approved' || c.status === 'Paid')
+    ?.filter(c => c.status === 'Approved' || c.status === 'Paid')
     .reduce((sum, c) => sum + c.amount, 0) || 0;
 
   // Assume worker has been with us for weighted history
   const weeksInsured = 12;
-  const totalPremiums = (policy?.premium || 49) * weeksInsured;
+  const activePolicy = worker?.policies?.[0];
+  const totalPremiums = (activePolicy?.premium || 49) * weeksInsured;
   const lossRatio = totalPremiums > 0 ? (totalPayouts / totalPremiums).toFixed(2) : 0;
   const deductible = 500;
 
@@ -47,11 +71,11 @@ export default function WorkerDetailPage() {
   }
 
   const riskData = [
-    { subject: 'Weather', value: parseFloat(worker.riskBreakdown.weatherExposure) * 100 },
-    { subject: 'Claims', value: parseFloat(worker.riskBreakdown.claimFrequency) * 100 },
-    { subject: 'Earnings', value: parseFloat(worker.riskBreakdown.earningsVolatility) * 100 },
-    { subject: 'Zone', value: parseFloat(worker.riskBreakdown.zoneRisk) * 100 },
-    { subject: 'Fraud', value: parseFloat(worker.riskBreakdown.fraudIndicator) * 100 },
+    { subject: 'Weather', value: parseFloat(worker.riskBreakdown?.weatherExposure || 0) * 100 },
+    { subject: 'Claims', value: parseFloat(worker.riskBreakdown?.claimFrequency || 0) * 100 },
+    { subject: 'Earnings', value: parseFloat(worker.riskBreakdown?.earningsVolatility || 0) * 100 },
+    { subject: 'Zone', value: parseFloat(worker.riskBreakdown?.zoneRisk || 0) * 100 },
+    { subject: 'Fraud', value: parseFloat(worker.riskBreakdown?.fraudIndicator || 0) * 100 },
   ];
 
   const timeMachineData = [
@@ -166,7 +190,7 @@ export default function WorkerDetailPage() {
               <span className="text-xs text-dark-400 uppercase tracking-wider font-semibold">Calculated Premium</span>
               <TrendingUp className="w-3.5 h-3.5 text-primary-400" />
             </div>
-            <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">₹{policy?.premium || '---'}</p>
+            <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">₹{activePolicy?.premium || '---'}</p>
             <p className="text-[10px] text-dark-400 mt-1">Actuarial Risk-Adjusted Weekly Rate</p>
           </div>
         </div>
@@ -231,7 +255,7 @@ export default function WorkerDetailPage() {
         <div className="p-5 border-b border-dark-100 dark:border-dark-700">
           <h3 className="text-base font-semibold text-dark-800 dark:text-dark-200">Claims History</h3>
         </div>
-        {worker.claimsHistory.length > 0 ? (
+        {(worker.claimsHistory?.length || 0) > 0 ? (
           <table className="w-full">
             <thead>
               <tr className="border-b border-dark-100 dark:border-dark-700">
@@ -243,7 +267,7 @@ export default function WorkerDetailPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-50 dark:divide-dark-800">
-              {worker.claimsHistory.map((claim) => (
+              {worker.claimsHistory?.map((claim) => (
                 <tr key={claim.id} className="table-row">
                   <td className="px-5 py-3 text-sm font-mono text-dark-600 dark:text-dark-400">{claim.id}</td>
                   <td className="px-5 py-3 text-sm text-dark-600 dark:text-dark-400">{formatDate(claim.date)}</td>

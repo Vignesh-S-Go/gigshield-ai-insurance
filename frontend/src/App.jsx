@@ -7,15 +7,20 @@ import ClaimsPage from './pages/ClaimsPage';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import PayoutsPage from './pages/PayoutsPage';
-import PoliciesPage from './pages/PoliciesPage';
+import ProfilePage from './pages/ProfilePage';
+import SignupPage from './pages/SignupPage';
+import SmartPolicyPage from './pages/SmartPolicyPage';
+import UserManagementPage from './pages/UserManagementPage';
 import WorkerApp from './pages/WorkerApp';
 import WorkerDetailPage from './pages/WorkerDetailPage';
 import WorkersPage from './pages/WorkersPage';
 import ZoneRiskPage from './pages/ZoneRiskPage';
 import useStore from './store/useStore';
 
+import LiveAlertSystem from './components/LiveAlertSystem';
+
 export default function App() {
-  const { darkMode } = useStore();
+  const { darkMode, isAuthenticated, user } = useStore();
 
   useEffect(() => {
     if (darkMode) {
@@ -29,20 +34,27 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <LiveAlertSystem />
       <Routes>
-        <Route path="/" element={<LoginPage />} />
-        <Route path="/worker-app" element={<WorkerApp />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to={user?.role?.toLowerCase() === 'worker' ? '/worker-dashboard' : '/dashboard'} />} />
+        <Route path="/signup" element={!isAuthenticated ? <SignupPage /> : <Navigate to={user?.role?.toLowerCase() === 'worker' ? '/worker-dashboard' : '/dashboard'} />} />
+
+        <Route path="/worker-dashboard" element={isAuthenticated ? <WorkerApp /> : <Navigate to="/login" />} />
+
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/users" element={<UserManagementPage />} />
           <Route path="/workers" element={<WorkersPage />} />
           <Route path="/workers/:id" element={<WorkerDetailPage />} />
-          <Route path="/policies" element={<PoliciesPage />} />
+          <Route path="/policies" element={<SmartPolicyPage />} />
           <Route path="/claims" element={<ClaimsPage />} />
           <Route path="/ai-insights" element={<AIInsightsPage />} />
           <Route path="/payouts" element={<PayoutsPage />} />
           <Route path="/zone-risk" element={<ZoneRiskPage />} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

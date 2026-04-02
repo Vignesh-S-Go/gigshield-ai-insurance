@@ -1,12 +1,21 @@
+import { useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import useStore from '../store/useStore';
 
 export default function DashboardLayout() {
-  const { isAuthenticated, sidebarCollapsed } = useStore();
+  const { isAuthenticated, user, sidebarCollapsed, initializeData } = useStore();
+
+  useEffect(() => {
+    initializeData();
+  }, []);
 
   if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role?.toLowerCase() === 'worker') {
+    return <Navigate to="/worker-dashboard" replace />;
   }
 
   return (

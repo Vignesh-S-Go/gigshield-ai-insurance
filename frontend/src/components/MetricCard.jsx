@@ -1,4 +1,6 @@
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
+import { TrendingDown, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function MetricCard({ icon: Icon, label, value, trend, trendValue, color = 'primary' }) {
   const colorClasses = {
@@ -25,8 +27,37 @@ export default function MetricCard({ icon: Icon, label, value, trend, trendValue
     purple: 'text-purple-600 dark:text-purple-400',
   };
 
+  // Parsing value logic
+  const stringValue = String(value);
+  const isPercent = stringValue.includes('%');
+  const numericMatch = stringValue.replace(/,/g, '').match(/[\d.]+/);
+  const numericTarget = numericMatch ? parseFloat(numericMatch[0]) : null;
+
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (latest) => {
+    if (numericTarget === null) return stringValue;
+    const isDecimal = stringValue.includes('.') && numericTarget % 1 !== 0;
+    const formatted = isDecimal ? latest.toFixed(2) : Math.round(latest).toLocaleString();
+    return stringValue.replace(/[\d.,]+/, formatted);
+  });
+
+  const [displayValue, setDisplayValue] = useState(stringValue);
+
+  useEffect(() => {
+    if (numericTarget !== null) {
+      const controls = animate(count, numericTarget, { duration: 1.5, ease: "easeOut" });
+      return controls.stop;
+    } else {
+      setDisplayValue(stringValue);
+    }
+  }, [numericTarget, count, stringValue]);
+
   return (
-    <div className="glass-card metric-card rounded-2xl p-5 relative overflow-hidden">
+    <motion.div
+      whileHover={{ y: -5, scale: 1.02 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      className="glass-card metric-card rounded-2xl p-5 relative overflow-hidden"
+    >
       {/* Gradient accent bar */}
       <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${colorClasses[color]}`} />
 
@@ -43,9 +74,11 @@ export default function MetricCard({ icon: Icon, label, value, trend, trendValue
       </div>
 
       <div className="mt-4">
-        <p className="text-2xl font-bold text-dark-900 dark:text-white tracking-tight">{value}</p>
+        <motion.p className="text-2xl font-bold text-dark-900 dark:text-white tracking-tight">
+          {numericTarget !== null ? <motion.span>{rounded}</motion.span> : displayValue}
+        </motion.p>
         <p className="text-sm text-dark-400 dark:text-dark-500 mt-0.5">{label}</p>
       </div>
-    </div>
+    </motion.div>
   );
 }

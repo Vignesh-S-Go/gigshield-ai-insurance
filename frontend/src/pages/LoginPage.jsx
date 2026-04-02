@@ -1,8 +1,8 @@
+import { ArrowRight, Loader2, Lock, Phone, Shield, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Phone, Lock, ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import { authApi } from '../api/authApi';
 import useStore from '../store/useStore';
-import api from '../services/api';
 
 export default function LoginPage() {
   const [phone, setPhone] = useState('');
@@ -10,8 +10,8 @@ export default function LoginPage() {
   const [step, setStep] = useState('phone'); // 'phone' | 'otp'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useStore();
   const navigate = useNavigate();
+  const { login } = useStore();
 
   const handleSendOTP = async (e) => {
     e.preventDefault();
@@ -22,10 +22,10 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      await api.sendOTP(phone);
+      await authApi.sendOtp(phone);
       setStep('otp');
     } catch {
-      setError('Failed to send OTP');
+      setError('Failed to send OTP. Check if server is running.');
     }
     setLoading(false);
   };
@@ -39,15 +39,31 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const result = await api.verifyOTP(phone, otp);
+      const result = await authApi.verifyOtp(phone, otp);
       if (result.success) {
-        login(phone);
-        navigate('/dashboard');
+        // Store user and worker data in localStorage
+        const userData = {
+          id: result.user.id,
+          name: result.user.name,
+          phone: result.user.phone,
+          email: result.user.email,
+          role: result.user.role,
+          workerId: result.worker?.id,
+          worker: result.worker
+        };
+        
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        if (result.worker) {
+          localStorage.setItem('currentWorker', JSON.stringify(result.worker));
+        }
+        
+        // Force reload to get fresh user data
+        window.location.href = result.user.role === 'admin' ? '/dashboard' : '/worker-dashboard';
       } else {
         setError(result.message || 'Invalid OTP');
       }
     } catch {
-      setError('Verification failed');
+      setError('Verification failed. Invalid code or technical error.');
     }
     setLoading(false);
   };
@@ -64,7 +80,6 @@ export default function LoginPage() {
       </div>
 
       <div className="relative w-full max-w-md animate-fade-in">
-        {/* Logo card */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-2xl shadow-primary-500/30 mb-4">
             <Shield className="w-8 h-8 text-white" />
@@ -76,16 +91,15 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Login card */}
         <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-white">
-              {step === 'phone' ? 'Welcome back' : 'Verify OTP'}
+              {step === 'phone' ? 'Welcome back' : 'Verify Identity'}
             </h2>
             <p className="text-sm text-dark-400 mt-1">
               {step === 'phone'
-                ? 'Sign in to your admin dashboard'
-                : `We sent a code to +91 ${phone}`}
+                ? 'Sign in to access your dashboard'
+                : `Enter the code sent to +91 ${phone}`}
             </p>
           </div>
 
@@ -120,27 +134,27 @@ export default function LoginPage() {
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <>Send OTP <ArrowRight className="w-4 h-4" /></>
+                  <>Get Magic Link <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
             </form>
           ) : (
             <form onSubmit={handleVerifyOTP} className="space-y-4">
               <div>
-                <label className="text-xs font-medium text-dark-400 uppercase tracking-wider mb-2 block">Enter OTP</label>
+                <label className="text-xs font-medium text-dark-400 uppercase tracking-wider mb-2 block">Verify OTP</label>
                 <div className="relative">
                   <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-dark-500" />
                   <input
                     type="text"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="123456"
+                    placeholder="------"
                     className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-dark-600 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all text-sm tracking-[0.3em] text-center font-mono text-lg"
                     autoFocus
                     maxLength={6}
                   />
                 </div>
-                <p className="text-xs text-dark-500 mt-2">Use any 6-digit code to sign in</p>
+                <p className="text-xs text-dark-500 mt-2 italic">Check backend console for your mock OTP code</p>
               </div>
               <button
                 type="submit"
@@ -150,7 +164,7 @@ export default function LoginPage() {
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <>Verify & Login <ArrowRight className="w-4 h-4" /></>
+                  <>Secure Login <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
               <button
@@ -164,8 +178,8 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="text-center text-xs text-dark-600 mt-6">
-          Powered by GigShield AI Engine v2.3
+        <p className="text-center text-xs text-dark-600 mt-6 font-mono tracking-widest uppercase">
+          GigShield AI Engine v2.4a
         </p>
       </div>
     </div>

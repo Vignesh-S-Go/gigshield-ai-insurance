@@ -1,45 +1,30 @@
 import { create } from 'zustand';
-import {
-  generateClaims,
-  generatePolicies,
-  generateWorkers,
-  getAIInsights,
-  getClaimsOverTime,
-  getDashboardMetrics,
-  getNotifications,
-  getPayoutsByZone,
-  getTriggerDistribution,
-  getZoneRiskData,
-  planDetails
-} from '../utils/mockData';
-import { calculateRiskAdjustedPremium } from '../utils/pricingModel';
-
-const workers = generateWorkers(50);
-const claims = generateClaims(workers, 80);
-const rawPolicies = generatePolicies(workers);
-
-// Recalculate premiums using the actuarial model
-const policies = rawPolicies.map(p => {
-  const worker = workers.find(w => w.id === p.workerId);
-  const baseRate = planDetails[p.planType].premium;
-  const workerRiskScore = worker?.riskScore || 0.5;
-  const city = p.city || worker?.city || 'Other';
-
-  return {
-    ...p,
-    premium: calculateRiskAdjustedPremium(baseRate, workerRiskScore, city),
-  };
-});
+import api from '../services/api';
+import { getClaimsOverTime, getPayoutsByZone, getTriggerDistribution, getAIInsights } from '../utils/mockData';
 
 const useStore = create((set, get) => ({
   // Auth
-  isAuthenticated: false,
-  user: null,
-  login: (phone) => set({
-    isAuthenticated: true,
-    user: { phone, name: 'Admin User', role: 'Insurer Admin', avatar: null },
+  isAuthenticated: !!JSON.parse(localStorage.getItem('currentUser')),
+  user: JSON.parse(localStorage.getItem('currentUser')) || null,
+  users: JSON.parse(localStorage.getItem('users')) || [],
+
+  login: (userData) => set(() => {
+    localStorage.setItem('currentUser', JSON.stringify(userData));
+    return { isAuthenticated: true, user: userData };
   }),
-  logout: () => set({ isAuthenticated: false, user: null }),
+
+  signup: (userData) => set((state) => {
+    const newUsers = [...state.users, userData];
+    localStorage.setItem('users', JSON.stringify(newUsers));
+    localStorage.setItem('currentUser', JSON.stringify(userData));
+    return { users: newUsers, isAuthenticated: true, user: userData };
+  }),
+
+  logout: () => set(() => {
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('currentWorker');
+    return { isAuthenticated: false, user: null };
+  }),
 
   // Theme
   darkMode: false,
@@ -59,39 +44,210 @@ const useStore = create((set, get) => ({
   sidebarCollapsed: false,
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
 
-  // Data
-  workers,
-  claims,
-  policies,
-  metrics: getDashboardMetrics(workers, claims),
-  claimsOverTime: getClaimsOverTime(),
-  payoutsByZone: getPayoutsByZone(),
-  triggerDistribution: getTriggerDistribution(),
-  aiInsights: getAIInsights(),
-  zoneRiskData: getZoneRiskData(),
-  notifications: getNotifications(),
-
-  // Simulation: Current Worker for the 'Worker App'
-  currentWorkerId: workers[0].id,
-  setCurrentWorker: (id) => set({ currentWorkerId: id }),
+  // Data from API
+  workers: [],
+  claims: [],
+  policies: [],
+  zones: [],
+  notifications: [],
+  metrics: {
+    activeWorkers: 0,
+    totalWorkers: 0,
+    totalPayout: 0,
+    fraudAlerts: 0,
+    avgRiskScore: 0
+  },
+  claimStats: {
+    total: 0,
+    pending: 0,
+    approved: 0,
+    paid: 0,
+    flagged: 0,
+    totalPayout: 0
+  },
+  policyStats: {
+    total: 0,
+    active: 0,
+    expired: 0
+  },
+  zoneStats: {
+    totalZones: 0,
+    highRiskZones: 0,
+    avgRiskScore: 0
+  },
+  
+  // Chart data (calculated from real data)
+  claimsOverTime: [],
+  payoutsByZone: [],
+  triggerDistribution: [],
+  aiInsights: {
+    highRiskZones: [],
+    predictions: [],
+    fraudAlerts: []
+  },
+  zoneRiskData: [],
 
   // Loading state
   loading: false,
   setLoading: (loading) => set({ loading }),
 
+  // Error state
+  error: null,
+  setError: (error) => set({ error }),
+
+  // Initialize data from API
+  initializeData: async () => {
+    set({ loading: true, error: null });
+    try {
+      const [workersRes, claimsRes, policiesRes, zonesRes, notificationsRes, metricsRes, claimStatsRes, policyStatsRes, zoneStatsRes, highRiskRes] = await Promise.all([
+        api.fetchWorkers(),
+        api.fetchClaims(),
+        api.fetchPolicies(),
+        api.fetchZones(),
+        api.fetchNotifications(),
+        api.getWorkerMetrics(),
+        api.getClaimStats(),
+        api.getPolicyStats(),
+        api.getZoneStats(),
+        api.getHighRiskZones()
+      ]);
+
+      const workers = workersRes.data || [];
+      const claims = claimsRes.data || [];
+      const policies = policiesRes.data || [];
+      const zones = zonesRes.data || [];
+
+      // Calculate chart data from real data
+      const claimsOverTime = calculateClaimsOverTime(claims);
+      const payoutsByZone = calculatePayoutsByZone(claims, workers);
+      const triggerDistribution = calculateTriggerDistribution(claims);
+
+      set({
+        workers,
+        claims,
+        policies,
+        zones,
+        zoneRiskData: zones,
+        notifications: notificationsRes.data || [],
+        metrics: metricsRes.data || get().metrics,
+        claimStats: claimStatsRes.data || get().claimStats,
+        policyStats: policyStatsRes.data || get().policyStats,
+        zoneStats: zoneStatsRes.data || get().zoneStats,
+        claimsOverTime,
+        payoutsByZone,
+        triggerDistribution,
+        aiInsights: {
+          highRiskZones: highRiskRes.data || [],
+          predictions: generatePredictions(),
+          fraudAlerts: calculateFraudAlerts(claims)
+        },
+        loading: false
+      });
+    } catch (error) {
+      console.error('[STORE] Failed to initialize data:', error);
+      set({ error: error.message, loading: false });
+    }
+  },
+
+  // Refresh all data
+  refreshData: async () => {
+    await get().initializeData();
+  },
+
+  // Fetch Workers
+  fetchWorkers: async (params = {}) => {
+    try {
+      const res = await api.fetchWorkers(params);
+      set({ workers: res.data || [] });
+      return res.data;
+    } catch (error) {
+      console.error('[STORE] Failed to fetch workers:', error);
+      throw error;
+    }
+  },
+
+  // Fetch Claims
+  fetchClaims: async (params = {}) => {
+    try {
+      const res = await api.fetchClaims(params);
+      set({ claims: res.data || [] });
+      return res.data;
+    } catch (error) {
+      console.error('[STORE] Failed to fetch claims:', error);
+      throw error;
+    }
+  },
+
+  // Fetch Policies
+  fetchPolicies: async (params = {}) => {
+    try {
+      const res = await api.fetchPolicies(params);
+      set({ policies: res.data || [] });
+      return res.data;
+    } catch (error) {
+      console.error('[STORE] Failed to fetch policies:', error);
+      throw error;
+    }
+  },
+
+  // Fetch Zones
+  fetchZones: async (params = {}) => {
+    try {
+      const res = await api.fetchZones(params);
+      set({ zones: res.data || [], zoneRiskData: res.data || [] });
+      return res.data;
+    } catch (error) {
+      console.error('[STORE] Failed to fetch zones:', error);
+      throw error;
+    }
+  },
+
+  // Fetch Notifications
+  fetchNotifications: async (params = {}) => {
+    try {
+      const res = await api.fetchNotifications(params);
+      set({ notifications: res.data || [] });
+      return res.data;
+    } catch (error) {
+      console.error('[STORE] Failed to fetch notifications:', error);
+      throw error;
+    }
+  },
+
   // Actions
   getWorkerById: (id) => get().workers.find(w => w.id === id),
-  getPoliciesByWorkerId: (id) => get().policies.filter(p => p.workerId === id),
+  getWorkerDetail: async (id) => {
+    try {
+      const res = await api.fetchWorker(id);
+      return res.data;
+    } catch (error) {
+      console.error('[STORE] Failed to fetch worker detail:', error);
+      throw error;
+    }
+  },
+  getPoliciesByWorkerId: (id) => get().policies.filter(p => p.worker_id === id),
   getClaimsByWorkerId: (id) => get().claims.filter(c => c.workerId === id),
 
-  // Notifications
-  markNotificationRead: (id) => set((state) => ({
-    notifications: state.notifications.map(n => n.id === id ? { ...n, read: true } : n),
+  // Sync Worker Stats
+  syncWorkerStats: async (id, stats) => {
+    try {
+      const res = await api.syncWorkerStats(id, stats);
+      if (res.success) {
+        set((state) => ({
+          workers: state.workers.map(w => w.id === id ? { ...w, ...stats } : w)
+        }));
+      }
+      return res;
+    } catch (error) {
+      console.error('[STORE] Failed to sync worker stats:', error);
+      throw error;
+    }
+  },
+
+  // Add Worker
+  addWorker: (worker) => set((state) => ({
+    workers: [worker, ...state.workers]
   })),
-  markAllRead: () => set((state) => ({
-    notifications: state.notifications.map(n => ({ ...n, read: true })),
-  })),
-  unreadCount: () => get().notifications.filter(n => !n.read).length,
 
   // Add Policy
   addPolicy: (policy) => set((state) => ({
@@ -99,58 +255,34 @@ const useStore = create((set, get) => ({
   })),
 
   // Add Claim
-  addClaim: (claim) => set((state) => {
-    const now = new Date();
+  addClaim: (claim) => set((state) => ({
+    claims: [claim, ...state.claims]
+  })),
 
-    // Feature 8: Fraud Detection (Simple Logic)
-    // Check if worker has filed another claim in the last 24h
-    const recentClaims = state.claims.filter(c => {
-      if (c.workerId !== claim.workerId) return false;
-      const claimDate = new Date(c.date);
-      const diffHours = (now - claimDate) / (1000 * 60 * 60);
-      return diffHours < 24;
-    });
-
-    let finalClaim = { ...claim };
-    let newNotification = null;
-
-    if (recentClaims.length > 0) {
-      finalClaim.status = 'Flagged';
-      if (!finalClaim.auditTrail) finalClaim.auditTrail = [];
-      finalClaim.auditTrail.push("Fraud Alert: Suspicious claim activity! Multiple claims filed from same user in short time.");
-
-      newNotification = {
-        id: Math.random().toString(36).substr(2, 9),
-        icon: '🚨',
-        title: 'Fraud Alert Triggered',
-        message: `Suspicious activity detected for ${claim.workerName} (velocity check failed).`,
-        type: 'danger',
-        time: 'Just now',
-        read: false
-      };
-    } else {
-      // Create a standard notification based on approval/rejection
-      const isRejected = ['Rejected', 'Flagged'].includes(finalClaim.status);
-      newNotification = {
-        id: Math.random().toString(36).substr(2, 9),
-        icon: isRejected ? '🚨' : '✅',
-        title: `Claim ${finalClaim.status.toUpperCase()}`,
-        message: `Claim ${finalClaim.id} ${finalClaim.status.toLowerCase()} for ${finalClaim.workerName}.`,
-        type: isRejected ? 'danger' : 'success',
-        time: 'Just now',
-        read: false
-      };
+  // Notifications
+  markNotificationRead: async (id) => {
+    try {
+      await api.markNotificationRead(id);
+      set((state) => ({
+        notifications: state.notifications.map(n => n.id === id ? { ...n, read: true } : n)
+      }));
+    } catch (error) {
+      console.error('[STORE] Failed to mark notification read:', error);
     }
+  },
 
-    const newClaims = [finalClaim, ...state.claims];
-    const newNotifications = [newNotification, ...state.notifications];
+  markAllRead: async () => {
+    try {
+      await api.markAllNotificationsRead();
+      set((state) => ({
+        notifications: state.notifications.map(n => ({ ...n, read: true }))
+      }));
+    } catch (error) {
+      console.error('[STORE] Failed to mark all notifications read:', error);
+    }
+  },
 
-    return {
-      claims: newClaims,
-      notifications: newNotifications,
-      metrics: getDashboardMetrics(state.workers, newClaims),
-    };
-  }),
+  unreadCount: () => get().notifications.filter(n => !n.read).length,
 
   // Payout simulation
   payoutStatus: null,
@@ -159,6 +291,87 @@ const useStore = create((set, get) => ({
     setTimeout(() => set({ payoutStatus: 'success' }), 2500);
     setTimeout(() => set({ payoutStatus: null }), 6000);
   },
+
+  // Live Alerts Feature
+  liveAlerts: [],
+  addLiveAlert: (alert) => {
+    const id = Date.now() + Math.random().toString();
+    set((state) => ({
+      liveAlerts: [...state.liveAlerts, { ...alert, id }]
+    }));
+    setTimeout(() => {
+      set((state) => ({
+        liveAlerts: state.liveAlerts.filter((a) => a.id !== id)
+      }));
+    }, 4000);
+  },
 }));
+
+// Helper functions for calculating chart data
+function calculateClaimsOverTime(claims) {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return months.map(month => {
+    const monthClaims = claims.filter(c => {
+      const date = new Date(c.date);
+      return date.toLocaleString('default', { month: 'short' }) === month;
+    });
+    return {
+      month,
+      claims: monthClaims.length,
+      payouts: monthClaims.reduce((sum, c) => sum + (c.payoutAmount || 0), 0)
+    };
+  });
+}
+
+function calculatePayoutsByZone(claims, workers) {
+  const zoneData = {};
+  claims.filter(c => c.status === 'Paid').forEach(c => {
+    const worker = workers.find(w => w.id === c.workerId);
+    const city = worker?.city || 'Other';
+    if (!zoneData[city]) {
+      zoneData[city] = { zone: city, payouts: 0, claims: 0 };
+    }
+    zoneData[city].payouts += c.payoutAmount || 0;
+    zoneData[city].claims += 1;
+  });
+  return Object.values(zoneData);
+}
+
+function calculateTriggerDistribution(claims) {
+  const triggers = {};
+  const colors = ['#6366f1', '#f59e0b', '#ef4444', '#10b981', '#8b5cf6'];
+  const triggerList = ['Rain', 'Heat', 'Flood', 'AQI', 'Curfew'];
+  
+  triggerList.forEach(t => {
+    triggers[t] = claims.filter(c => c.triggerType === t).length;
+  });
+  
+  return triggerList.map((type, i) => ({
+    name: type,
+    value: triggers[type] || 0,
+    color: colors[i]
+  }));
+}
+
+function calculateFraudAlerts(claims) {
+  return claims
+    .filter(c => c.status === 'Flagged')
+    .map(c => ({
+      id: c.id,
+      workerName: 'Suspicious Pattern Detected',
+      description: 'Claim flagged for review',
+      severity: 'high',
+      timestamp: new Date(c.date).toLocaleDateString()
+    }));
+}
+
+function generatePredictions() {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  return days.map(day => ({
+    day,
+    disruptions: Math.floor(Math.random() * 10) + 3,
+    confidence: Math.floor(Math.random() * 20) + 75
+  }));
+}
 
 export default useStore;
