@@ -1,5 +1,5 @@
 // ============================================
-// GigShield Mock Data — Realistic Indian Data
+// ZeroClaim Mock Data — Realistic Indian Data
 // ============================================
 
 export const cities = ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Jaipur', 'Ahmedabad', 'Lucknow'];

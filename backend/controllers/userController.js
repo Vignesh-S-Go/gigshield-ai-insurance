@@ -12,8 +12,18 @@ const getWorkerByPhone = async (phone) => {
     return data
 }
 
+const getWorkerByUserId = async (userId) => {
+    const { data } = await supabase
+        .from('workers')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+    return data
+}
+
 const syncWorkerProfile = async (user, updates = {}, deliveryAmount = 0) => {
-    const worker = await getWorkerByPhone(user.phone)
+    const worker = await getWorkerByUserId(user.id)
     if (!worker) return null
 
     const workerUpdates = {
@@ -70,7 +80,7 @@ export const getUserByPhone = async (req, res, next) => {
 
 export const createUser = async (req, res, next) => {
     try {
-        const { phone, name, role, platform, email } = req.body
+        const { phone, name, role, platform, email, city } = req.body
         const normalizedPhone = normalizePhone(phone)
 
         const existing = await userModel.findByPhone(normalizedPhone)
@@ -90,7 +100,36 @@ export const createUser = async (req, res, next) => {
             total_earnings: 0
         })
 
-        res.status(201).json({ success: true, data: formatUser(user, null) })
+        if (!user) {
+            return res.status(500).json({ success: false, message: 'Failed to create user' })
+        }
+
+        if (role === 'worker' || !role) {
+            const workerId = `GS-${Date.now().toString(36).toUpperCase()}`;
+            const { error: workerError } = await supabase
+                .from('workers')
+                .insert([{
+                    id: workerId,
+                    user_id: user.id,
+                    name: name || `Worker_${normalizedPhone.slice(-4)}`,
+                    phone: normalizedPhone,
+                    email: email || null,
+                    city: city || 'Mumbai',
+                    plan: 'Standard',
+                    delivery_platform: platform || 'Zomato',
+                    status: 'active',
+                    last_active_at: new Date().toISOString()
+                }]);
+
+            if (workerError) {
+                console.error('[userController]', 'Failed to create worker:', workerError);
+            }
+
+            const worker = workerError ? null : await getWorkerByPhone(normalizedPhone);
+            res.status(201).json({ success: true, data: formatUser(user, worker) });
+        } else {
+            res.status(201).json({ success: true, data: formatUser(user, null) });
+        }
     } catch (error) {
         next(error)
     }
@@ -139,7 +178,7 @@ export const updateEarnings = async (req, res, next) => {
 
         const user = await userModel.updateEarnings(id, { amount: numericAmount, weekly })
         const existingUser = await userModel.findById(id)
-        const worker = existingUser ? await getWorkerByPhone(existingUser.phone) : null
+        const worker = existingUser ? await getWorkerByUserId(existingUser.id) : null
 
         res.json({ success: true, data: formatUser(user, worker) })
     } catch (error) {

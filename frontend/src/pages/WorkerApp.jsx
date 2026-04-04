@@ -35,10 +35,18 @@ import { userApi } from '../api/userApi';
 import { riskApi } from '../api/riskApi';
 import { insuranceApi } from '../api/insuranceApi';
 import api from '../services/api';
+import { authHttp } from '../services/httpClient';
 import useStore from '../store/useStore';
 import { formatCurrency } from '../utils/helpers';
 import { evaluateClaim } from '../utils/rulesEngine';
 import WorkerPolicyPage from './WorkerPolicyPage';
+import AutoClaimFeed from '../components/AutoClaimFeed';
+import ImpactScoreDisplay from '../components/worker/ImpactScoreDisplay';
+import TrustBadges from '../components/worker/TrustBadges';
+import RiskPanel from '../components/worker/RiskPanel';
+import WhyProtectedSection from '../components/worker/WhyProtectedSection';
+import RiskAssistant from '../components/worker/RiskAssistant';
+import PlanSelectionModal from '../components/worker/PlanSelectionModal';
 
 export default function WorkerApp() {
     const navigate = useNavigate();
@@ -67,6 +75,14 @@ export default function WorkerApp() {
     const [locationError, setLocationError] = useState(null);
     const [insuranceResult, setInsuranceResult] = useState(null);
     const [insuranceLoading, setInsuranceLoading] = useState(false);
+    
+    // New state for enhanced UI
+    const [riskForecast, setRiskForecast] = useState(null);
+    const [riskLoading, setRiskLoading] = useState(false);
+    const [workerImpactScore, setWorkerImpactScore] = useState(82);
+    const [showPlanModal, setShowPlanModal] = useState(false);
+    const [planChanging, setPlanChanging] = useState(false);
+    const [dbPolicies, setDbPolicies] = useState([]);
 
     // Live Alert System
     useEffect(() => {
@@ -142,6 +158,102 @@ export default function WorkerApp() {
         if (score <= 70) return { label: 'Medium', color: 'text-warning-400' };
         return { label: 'High', color: 'text-danger-400' };
     };
+
+    const fetchRiskForecast = async () => {
+        setRiskLoading(true);
+        try {
+            const workerCity = profileData?.city || 'Hyderabad';
+            const res = await authHttp.get(`/workers/risk?city=${workerCity}`);
+            if (res.data) {
+                setRiskForecast(res.data);
+                setWorkerImpactScore(Math.floor(50 + Math.random() * 40));
+            }
+        } catch (err) {
+            console.error('Risk forecast fetch failed:', err);
+            setRiskForecast(null);
+        } finally {
+            setRiskLoading(false);
+        }
+    };
+
+    const handlePlanChange = async (newPlan) => {
+        if (!worker?.id) {
+            console.error('No worker ID found');
+            alert('Worker ID not found. Please login again.');
+            return;
+        }
+        console.log('Attempting to change plan:', { workerId: worker.id, plan: newPlan });
+        setPlanChanging(true);
+        try {
+            const res = await authHttp.put(`/workers/${worker.id}/plan`, { planType: newPlan });
+            console.log('Plan change response:', res);
+            if (res.data?.success) {
+                // Save to localStorage
+                const storedWorker = JSON.parse(localStorage.getItem('currentWorker') || '{}');
+                localStorage.setItem('currentWorker', JSON.stringify({ ...storedWorker, plan: newPlan }));
+                
+                // Fetch updated policies from DB
+                const policiesRes = await api.fetchWorkerPolicies(worker.id);
+                if (policiesRes?.data) {
+                    setDbPolicies(policiesRes.data);
+                }
+                
+                setShowPlanModal(false);
+            }
+        } catch (err) {
+            console.error('Plan change failed:', err);
+            const errorMsg = err.response?.data?.error || err.message || 'Unknown error';
+            alert('Failed to change plan: ' + errorMsg);
+        } finally {
+            setPlanChanging(false);
+        }
+    };
+
+    // Fetch policies from database and check if worker needs to select plan
+    useEffect(() => {
+        const checkWorkerPolicy = async () => {
+            if (!worker?.id) {
+                console.log('[PlanCheck] No worker ID, skipping policy check');
+                return;
+            }
+            
+            console.log('[PlanCheck] Checking policies for worker:', worker.id);
+            
+            try {
+                const policiesRes = await api.fetchWorkerPolicies(worker.id);
+                console.log('[PlanCheck] API Response:', policiesRes);
+                
+                const policies = policiesRes?.data || [];
+                console.log('[PlanCheck] Policies found:', policies.length);
+                
+                setDbPolicies(policies);
+                
+                // Check if worker has an active policy
+                const hasActivePolicy = policies.some(p => p.status === 'Active');
+                console.log('[PlanCheck] Has active policy:', hasActivePolicy);
+                
+                // Show plan modal only if no active policy
+                if (!hasActivePolicy) {
+                    console.log('[PlanCheck] Showing plan modal - no active policy');
+                    setShowPlanModal(true);
+                } else {
+                    console.log('[PlanCheck] NOT showing modal - has active policy');
+                }
+            } catch (err) {
+                console.error('[PlanCheck] API Error:', err);
+                // If API error (like 401), don't show modal - user might have auth issue
+                // Only show modal if it's a network error or similar
+                if (err.response?.status === 401) {
+                    console.log('[PlanCheck] Auth error, not showing modal');
+                } else {
+                    console.log('[PlanCheck] Network error, showing modal');
+                    setShowPlanModal(true);
+                }
+            }
+        };
+        
+        checkWorkerPolicy();
+    }, [worker?.id]);
 
     const calculateInsurance = (claimType) => {
         if (!navigator.geolocation) {
@@ -432,9 +544,9 @@ export default function WorkerApp() {
         setShowExplainable(true);
         try {
             const explanation = await aiService.getAIExplanation({
-                risk: safetyScore > 70 ? 'Low' : 'Moderate',
-                weather: 'Heavy Rain',
-                policy: 'Weather Protection Active'
+                risk: safetyScore || 50,
+                status: safetyScore > 70 ? 'approved' : 'pending',
+                reason: safetyScore > 70 ? 'Low risk score indicates automatic approval' : 'Moderate risk score requires review'
             });
             setAiExplanation(explanation);
         } catch (error) {
@@ -710,6 +822,21 @@ export default function WorkerApp() {
                                 )}
                             </div>
 
+                            {/* Auto-Claim Feed - Shows AI-filed claims when triggers fire */}
+                            <AutoClaimFeed />
+
+                            {/* Trust Badges */}
+                            <TrustBadges />
+
+                            {/* Impact Score Display */}
+                            <ImpactScoreDisplay score={workerImpactScore} />
+
+                            {/* Real-Time Risk Panel */}
+                            <RiskPanel riskData={riskForecast} loading={riskLoading} onRefresh={fetchRiskForecast} />
+
+                            {/* Why Protected Section */}
+                            <WhyProtectedSection />
+
                             {/* Earnings Summary */}
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="bg-dark-800 border border-dark-700 p-3 rounded-2xl text-center">
@@ -834,24 +961,14 @@ export default function WorkerApp() {
                         <div className="p-5 space-y-5 animate-fade-in">
                             <h2 className="text-lg font-bold text-white">Claims Center</h2>
 
-                            <button
-                                onClick={() => { setClaimStatus('input'); setShowClaimModal(true); }}
-                                className="w-full bg-gradient-to-r from-primary-600 to-primary-800 hover:from-primary-500 hover:to-primary-700 transition-all p-5 rounded-3xl shadow-2xl shadow-primary-500/20 group relative overflow-hidden active:scale-95"
-                            >
-                                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <div className="flex items-center justify-between relative z-10">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm group-hover:rotate-12 transition-transform">
-                                            <Zap className="w-5 h-5 text-white" />
-                                        </div>
-                                        <div>
-                                            <p className="text-white font-bold text-sm uppercase tracking-wider">File a Claim</p>
-                                            <p className="text-white/60 text-xs">AI-powered instant verification</p>
-                                        </div>
-                                    </div>
-                                    <ArrowRight className="w-5 h-5 text-white/60 group-hover:translate-x-1 transition-transform" />
+                            <div className="bg-dark-800 border border-dark-700 rounded-2xl p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Zap className="w-4 h-4 text-primary-400 animate-pulse" />
+                                    <p className="text-sm font-bold text-white uppercase tracking-wider">Auto-Filed Claims</p>
                                 </div>
-                            </button>
+                                <p className="text-xs text-white/60 mb-4">Claims are automatically filed when extreme weather triggers are detected in your area.</p>
+                                <AutoClaimFeed />
+                            </div>
 
                             {/* Smart Insurance Decision */}
                             <div className="bg-dark-800 border border-dark-700 rounded-2xl p-5">
@@ -1010,6 +1127,23 @@ export default function WorkerApp() {
                                                 <span className="text-white/60 text-sm flex items-center gap-2"><Award className="w-4 h-4" /> Deliveries</span>
                                                 <span className="text-white font-bold">{profileData?.deliveries || worker?.totalDeliveries || 0}</span>
                                             </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Plan Info */}
+                                    <div className="bg-dark-800 border border-dark-700 p-5 rounded-2xl">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-white/50 text-xs uppercase mb-1">Current Plan</p>
+                                                <p className="text-white font-bold text-lg">{activePolicy?.planType || 'Standard'}</p>
+                                                <p className="text-success-400 text-sm">₹{activePolicy?.premium || 49}/week • ₹{activePolicy?.maxPayout || 5000} coverage</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => setShowPlanModal(true)}
+                                                className="px-4 py-2 bg-primary-500/20 text-primary-400 border border-primary-500/30 rounded-xl text-sm font-bold hover:bg-primary-500/30 transition"
+                                            >
+                                                Change Plan
+                                            </button>
                                         </div>
                                     </div>
 
@@ -1183,7 +1317,7 @@ export default function WorkerApp() {
                             </h3>
                             <textarea
                                 className="w-full bg-white dark:bg-dark-900 border border-indigo-200 dark:border-indigo-500/20 rounded-xl p-3 text-sm min-h-[80px] text-dark-800 dark:text-slate-200"
-                                placeholder="Tell GigShield what happened in your own words... (e.g. 'I slipped on a wet floor while delivering near Dadar')"
+                                placeholder="Tell ZeroClaim what happened in your own words... (e.g. 'I slipped on a wet floor while delivering near Dadar')"
                                 value={storyMode.rawDescription || ''}
                                 onChange={(e) => setStoryMode(prev => ({ ...prev, rawDescription: e.target.value }))}
                             />
@@ -1286,6 +1420,12 @@ export default function WorkerApp() {
                     </div>
                 </div>
             </Modal>
+
+            <PlanSelectionModal 
+                isOpen={showPlanModal} 
+                onSelect={handlePlanChange}
+                currentPlan={activePolicy?.planType}
+            />
         </div >
     );
 }

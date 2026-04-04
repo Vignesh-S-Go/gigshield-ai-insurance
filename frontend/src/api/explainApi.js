@@ -1,8 +1,6 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+import { authHttp } from '../services/httpClient';
 
 export const getExplanation = async (data) => {
-    const res = await axios.post(`${API_URL}/explain`, data);
+    const res = await authHttp.post('/explain', data);
     return res.data;
 };

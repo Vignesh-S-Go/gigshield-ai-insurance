@@ -1,6 +1,7 @@
 import axios from 'axios'
+import dotenv from 'dotenv'
+dotenv.config()
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 const model = 'gemini-3.1-flash-lite-preview'
 const cache = new Map()
 const CACHE_TTL = 1000 * 60 * 15
@@ -50,11 +51,16 @@ export const getAIExplanation = async (data) => {
     const cached = getCached(cacheKey)
     if (cached) return cached
 
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY
     if (!GEMINI_API_KEY) {
+        console.warn('[AI Service] No Gemini API key found in process.env');
         return generateFallbackExplanation(data)
     }
 
-    const prompt = `You are an insurance claims adjuster for GigShield.
+    console.log('[AI Service] Using API Key (length):', GEMINI_API_KEY.length);
+    console.log('[AI Service] API Key prefix:', GEMINI_API_KEY.substring(0, 7));
+
+    const prompt = `You are an insurance claims adjuster for ZeroClaim.
 Risk Score: ${data.risk}
 Status: ${data.status}
 Reason: ${data.reason || 'Not provided'}
@@ -63,7 +69,7 @@ Explain the decision in 2 short sentences using clear, customer-safe language.`
 
     try {
         const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
             {
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
@@ -72,7 +78,10 @@ Explain the decision in 2 short sentences using clear, customer-safe language.`
                 }
             },
             {
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': GEMINI_API_KEY
+                },
                 timeout: 30000
             }
         )
@@ -91,6 +100,7 @@ Explain the decision in 2 short sentences using clear, customer-safe language.`
 }
 
 export const explainClaim = async (claimData, decisionStatus) => {
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY
     if (!GEMINI_API_KEY) {
         return {
             summary: 'Claim evaluated using fallback decision logic.',
@@ -101,10 +111,13 @@ export const explainClaim = async (claimData, decisionStatus) => {
     try {
         const prompt = `Act as an insurance claims adjuster. Explain why this claim was ${decisionStatus}: ${JSON.stringify(claimData)}. Keep it professional and under 3 sentences.`
         const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
             { contents: [{ parts: [{ text: prompt }] }] },
             {
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': GEMINI_API_KEY
+                },
                 timeout: 30000
             }
         )
@@ -124,6 +137,7 @@ export const explainClaim = async (claimData, decisionStatus) => {
 }
 
 export const analyzeClaim = async (description) => {
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY
     if (!GEMINI_API_KEY) {
         return {
             incident_type: 'OTHER',
@@ -146,10 +160,13 @@ Fields:
 - brief_summary`
 
         const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
             { contents: [{ parts: [{ text: prompt }] }] },
             {
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': GEMINI_API_KEY
+                },
                 timeout: 30000
             }
         )

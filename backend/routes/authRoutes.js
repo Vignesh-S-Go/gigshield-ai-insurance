@@ -1,16 +1,19 @@
 import express from 'express';
-import { sendOtp, verifyOtp, createUser, getUsers, deleteUser, updateUser } from '../controllers/authController.js';
+import { sendOtp, verifyOtp, createUser, getUsers, deleteUser, updateUser, registerWorker } from '../controllers/authController.js';
+import { otpRateLimiter } from '../middlewares/rateLimiter.js';
+import { authMiddleware, adminMiddleware } from '../middlewares/jwtAuth.js';
 
 const router = express.Router();
 
-// Public routes (for login)
-router.post('/send-otp', sendOtp);
+router.post('/send-otp', otpRateLimiter, sendOtp);
 router.post('/verify-otp', verifyOtp);
 
-// Admin routes (protected - should add auth middleware in production)
-router.post('/users', createUser);
-router.get('/users', getUsers);
-router.put('/users/:id', updateUser);
-router.delete('/users/:id', deleteUser);
+// Public worker registration - no auth required
+router.post('/register', registerWorker);
+
+router.post('/users', authMiddleware, adminMiddleware, createUser);
+router.get('/users', authMiddleware, adminMiddleware, getUsers);
+router.put('/users/:id', authMiddleware, adminMiddleware, updateUser);
+router.delete('/users/:id', authMiddleware, adminMiddleware, deleteUser);
 
 export default router;

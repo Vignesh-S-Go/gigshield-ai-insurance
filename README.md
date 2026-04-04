@@ -1,4 +1,4 @@
-# 🛵 GigShield — AI-Powered Parametric Income Insurance for Food Delivery Partners
+# 🛵 ZeroClaim — AI-Powered Parametric Income Insurance for Food Delivery Partners
 
 
 > **Guidewire DEVTrails 2026 | University Hackathon**  
@@ -16,7 +16,7 @@ https://prismatic-cascaron-ade43b.netlify.app/
 
 India's food delivery partners (Zomato, Swiggy) earn ₹15,000–₹25,000/month but lose 20–30% of weekly income whenever external disruptions like heavy rain, floods, extreme heat, or local curfews force them off the road. There is currently no financial safety net for these workers.
 
-**GigShield** is a parametric income insurance platform that automatically detects disruptions, triggers claims without any manual effort, and pays out lost wages directly to the worker — all within minutes.
+**ZeroClaim** is a parametric income insurance platform that automatically detects disruptions, triggers claims without any manual effort, and pays out lost wages directly to the worker — all within minutes.
 
 ---
 
@@ -24,7 +24,7 @@ India's food delivery partners (Zomato, Swiggy) earn ₹15,000–₹25,000/month
 
 Traditional insurance requires manual claim filing and verification, which can take days.
 
-GigShield uses parametric triggers (e.g., rainfall > 35mm/hr) to automatically detect disruptions and instantly approve payouts — eliminating paperwork, delays, and uncertainty.
+ZeroClaim uses parametric triggers (e.g., rainfall > 35mm/hr) to automatically detect disruptions and instantly approve payouts — eliminating paperwork, delays, and uncertainty.
 
 
 ## 👤 Persona: Food Delivery Partner (Zomato / Swiggy)
@@ -47,13 +47,13 @@ Food delivery partners are the most weather-exposed gig workers. Unlike e-commer
 
 ## 🎬 Persona-Based Scenarios
 
-**Scenario 1 — Heavy Rain:** Rainfall in Madhapur exceeds 35mm/hr. GigShield detects the trigger → validates Ravi's GPS was in the disruption zone → transfers ₹500 (50% daily wage) to his UPI in under 60 seconds. Zero action from Ravi.
+**Scenario 1 — Heavy Rain:** Rainfall in Madhapur exceeds 35mm/hr. ZeroClaim detects the trigger → validates Ravi's GPS was in the disruption zone → transfers ₹500 (50% daily wage) to his UPI in under 60 seconds. Zero action from Ravi.
 
-**Scenario 2 — Heatwave:** IMD issues Red Alert above 44°C. GigShield triggers 40% daily wage payout for all enrolled workers in the flagged zone.
+**Scenario 2 — Heatwave:** IMD issues Red Alert above 44°C. ZeroClaim triggers 40% daily wage payout for all enrolled workers in the flagged zone.
 
-**Scenario 3 — Curfew / Bandh:** Unplanned bandh shuts Ravi's zone. GigShield detects mobility collapse via traffic anomaly API → auto-triggers 60% daily wage protection.
+**Scenario 3 — Curfew / Bandh:** Unplanned bandh shuts Ravi's zone. ZeroClaim detects mobility collapse via traffic anomaly API → auto-triggers 60% daily wage protection.
 
-**Scenario 4 — Severe Flooding:** IMD Flood Warning active. GigShield cross-references flood polygon with worker GPS zone → triggers 75% daily wage payout (highest tier).
+**Scenario 4 — Severe Flooding:** IMD Flood Warning active. ZeroClaim cross-references flood polygon with worker GPS zone → triggers 75% daily wage payout (highest tier).
 
 **Scenario 5 — Air Quality Emergency:** CPCB AQI crosses 400 (Severe) for 3+ hours → 30% daily wage protection triggered.
 
@@ -155,7 +155,7 @@ The model re-scores every worker every Sunday night using a 7-day weather foreca
 
 ---
 
-## ⚠️ What GigShield Does NOT Cover
+## ⚠️ What ZeroClaim Does NOT Cover
 
 | ❌ Excluded | ✅ Covered |
 |------------|-----------|
@@ -167,4 +167,4 @@ The model re-scores every worker every Sunday night using a 7-day weather foreca
 
 ## 💬 Final Thought
 
-GigShield doesn’t insure vehicles or people — it insures income. And for gig workers, income is everything.
+ZeroClaim doesn’t insure vehicles or people — it insures income. And for gig workers, income is everything.

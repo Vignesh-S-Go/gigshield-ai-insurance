@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowLeft, Loader2, Mail, Phone, Shield, Sparkles, User, Users } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Loader2, Mail, Phone, Shield, Sparkles, User } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api/authApi';
@@ -13,7 +13,8 @@ export default function SignupPage() {
     name: '',
     phone: '',
     email: '',
-    role: 'worker'
+    city: 'Mumbai',
+    platform: 'Zomato'
   });
 
   const handleChange = (e) => {
@@ -23,10 +24,6 @@ export default function SignupPage() {
     } else {
       setFormData({ ...formData, [name]: value });
     }
-  };
-
-  const selectRole = (role) => {
-    setFormData({ ...formData, role });
   };
 
   const validateStep1 = () => {
@@ -69,21 +66,26 @@ export default function SignupPage() {
     setError('');
 
     try {
-      await authApi.signup({
+      const result = await authApi.register({
         name: formData.name,
         phone: `+91 ${formData.phone}`,
         email: formData.email,
-        role: formData.role
+        city: formData.city,
+        platform: formData.platform
       });
       
-      // Navigate to login with pre-filled data
-      const encodedData = btoa(JSON.stringify({
-        phone: formData.phone,
-        email: formData.email
-      }));
-      navigate(`/?signup=true&data=${encodedData}`);
+      if (result.success) {
+        // Navigate to login with pre-filled data after successful registration
+        const encodedData = btoa(JSON.stringify({
+          phone: formData.phone,
+          email: formData.email
+        }));
+        navigate(`/?signup=true&data=${encodedData}`);
+      } else {
+        setError(result.message || 'Registration failed. Please try again.');
+      }
     } catch (err) {
-      setError(err.message || 'Signup failed. Please try again.');
+      setError(err.response?.data?.message || err.message || 'Signup failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -104,10 +106,10 @@ export default function SignupPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-2xl shadow-primary-500/30 mb-4">
             <Shield className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">GigShield</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">ZeroClaim</h1>
           <p className="text-primary-300/70 text-sm mt-1.5 flex items-center justify-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
-            Create your account
+            Insurance that pays before you ask.
           </p>
         </div>
 
@@ -170,35 +172,32 @@ export default function SignupPage() {
               </div>
 
               <div>
-                <label className="text-xs font-medium text-dark-400 uppercase tracking-wider mb-3 block">I am a</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => selectRole('worker')}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      formData.role === 'worker'
-                        ? 'border-primary-500 bg-primary-500/10 text-white'
-                        : 'border-white/10 bg-white/5 text-white/70 hover:border-white/30'
-                    }`}
-                  >
-                    <Users className="w-6 h-6 mx-auto mb-2" />
-                    <p className="text-sm font-semibold">Worker</p>
-                    <p className="text-[10px] text-white/50 mt-1">Delivery Partner</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => selectRole('admin')}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      formData.role === 'admin'
-                        ? 'border-primary-500 bg-primary-500/10 text-white'
-                        : 'border-white/10 bg-white/5 text-white/70 hover:border-white/30'
-                    }`}
-                  >
-                    <Shield className="w-6 h-6 mx-auto mb-2" />
-                    <p className="text-sm font-semibold">Admin</p>
-                    <p className="text-[10px] text-white/50 mt-1">Platform Manager</p>
-                  </button>
-                </div>
+                <label className="text-xs font-medium text-dark-400 uppercase tracking-wider mb-2 block">City</label>
+                <select
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all text-sm"
+                >
+                  <option value="Mumbai" className="text-dark-800">Mumbai</option>
+                  <option value="Delhi" className="text-dark-800">Delhi</option>
+                  <option value="Bangalore" className="text-dark-800">Bangalore</option>
+                  <option value="Chennai" className="text-dark-800">Chennai</option>
+                  <option value="Hyderabad" className="text-dark-800">Hyderabad</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-dark-400 uppercase tracking-wider mb-2 block">Delivery Platform</label>
+                <select
+                  name="platform"
+                  value={formData.platform}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all text-sm"
+                >
+                  <option value="Zomato" className="text-dark-800">Zomato</option>
+                  <option value="Swiggy" className="text-dark-800">Swiggy</option>
+                </select>
               </div>
 
               <button
@@ -274,7 +273,7 @@ export default function SignupPage() {
         </div>
 
         <p className="text-center text-xs text-dark-600 mt-6 font-mono tracking-widest uppercase">
-          GigShield AI Engine v2.4a
+          ZeroClaim AI Engine v2.4a
         </p>
       </div>
     </div>

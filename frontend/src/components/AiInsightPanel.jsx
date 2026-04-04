@@ -113,7 +113,7 @@ export default function AiInsightPanel({ riskScore, claimSeverity, policyCoverag
                 <Sparkles className={`w-4 h-4 ${config.text}`} />
                 AI Decision Insight
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Powered by GigShield Neural Network</p>
+              <p className="text-xs text-slate-400 mt-0.5">Powered by ZeroClaim Neural Network</p>
             </div>
           </div>
           <button

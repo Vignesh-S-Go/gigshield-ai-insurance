@@ -12,6 +12,7 @@ import {
   Users,
   Wallet,
   Zap,
+  Activity,
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
@@ -22,10 +23,10 @@ const navItems = [
   { path: '/workers', icon: Users, label: 'Workers' },
   { path: '/policies', icon: FileText, label: 'Policies' },
   { path: '/claims', icon: Zap, label: 'Claims' },
+  { path: '/zeroclaim', icon: Zap, label: 'ZeroClaim Live' },
   { path: '/ai-insights', icon: Brain, label: 'AI Insights' },
   { path: '/payouts', icon: Wallet, label: 'Payouts' },
   { path: '/zone-risk', icon: Map, label: 'Zone Risk' },
-  { path: '/worker-dashboard', icon: Smartphone, label: 'Worker Dashboard' },
 ];
 
 export default function Sidebar() {
@@ -46,8 +47,8 @@ export default function Sidebar() {
         </div>
         {!sidebarCollapsed && (
           <div className="animate-fade-in">
-            <h1 className="text-base font-bold text-dark-900 dark:text-white tracking-tight">GigShield</h1>
-            <p className="text-[10px] text-dark-400 dark:text-dark-500 font-medium tracking-wider uppercase">Admin Portal</p>
+            <h1 className="text-base font-bold text-dark-900 dark:text-white tracking-tight">ZeroClaim</h1>
+            <p className="text-[10px] text-dark-400 dark:text-dark-500 font-medium tracking-wider uppercase">Insurance that pays before you ask.</p>
           </div>
         )}
       </div>

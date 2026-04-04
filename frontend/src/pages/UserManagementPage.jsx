@@ -1,9 +1,17 @@
-import { Plus, Trash2, Edit2, Users, Shield, User, Check, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, Shield, User, Check, X, MapPin } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import Modal from '../components/Modal';
 import { authApi } from '../api/authApi';
 import { formatDate } from '../utils/helpers';
+
+const CITIES = [
+    { value: 'Mumbai', label: 'Mumbai', triggers: ['FLOOD_ALERT', 'AQI_HIGH'] },
+    { value: 'Delhi', label: 'Delhi', triggers: ['AQI_HIGH', 'HEAVY_RAIN', 'FLOOD_ALERT'] },
+    { value: 'Chennai', label: 'Chennai', triggers: ['HEAVY_RAIN', 'AQI_HIGH'] },
+    { value: 'Bangalore', label: 'Bangalore', triggers: ['HEAVY_RAIN', 'FLOOD_ALERT'] },
+    { value: 'Hyderabad', label: 'Hyderabad', triggers: ['HEAVY_RAIN', 'HEAT_WAVE'] }
+];
 
 export default function UserManagementPage() {
     const [users, setUsers] = useState([]);
@@ -14,7 +22,9 @@ export default function UserManagementPage() {
         name: '',
         phone: '',
         email: '',
-        role: 'worker'
+        role: 'worker',
+        city: 'Mumbai',
+        platform: 'Zomato'
     });
     const [error, setError] = useState('');
 
@@ -45,20 +55,21 @@ export default function UserManagementPage() {
             }
             setShowModal(false);
             setEditingUser(null);
-            setFormData({ name: '', phone: '', email: '', role: 'worker' });
+            setFormData({ name: '', phone: '', email: '', role: 'worker', city: 'Mumbai', platform: 'Zomato' });
             fetchUsers();
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to save user');
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!confirm('Are you sure you want to delete this user?')) return;
+    const handleDelete = async (id, role) => {
+        if (!confirm('Are you sure you want to delete this ' + role + '?')) return;
         try {
             await authApi.deleteUser(id);
             fetchUsers();
         } catch (err) {
             console.error('Failed to delete user:', err);
+            alert('Failed to delete user');
         }
     };
 
@@ -68,14 +79,16 @@ export default function UserManagementPage() {
             name: user.name || '',
             phone: user.phone.replace('+91 ', ''),
             email: user.email || '',
-            role: user.role
+            role: user.role,
+            city: 'Mumbai',
+            platform: 'Zomato'
         });
         setShowModal(true);
     };
 
     const openAddModal = () => {
         setEditingUser(null);
-        setFormData({ name: '', phone: '', email: '', role: 'worker' });
+        setFormData({ name: '', phone: '', email: '', role: 'worker', city: 'Mumbai', platform: 'Zomato' });
         setError('');
         setShowModal(true);
     };
@@ -85,6 +98,11 @@ export default function UserManagementPage() {
             return <span className="badge bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400">Admin</span>;
         }
         return <span className="badge bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">Worker</span>;
+    };
+
+    const getCityTriggers = (city) => {
+        const cityData = CITIES.find(c => c.value === city);
+        return cityData ? cityData.triggers.join(', ') : 'None';
     };
 
     return (
@@ -99,15 +117,9 @@ export default function UserManagementPage() {
                         </div>
                         <div>
                             <h2 className="text-lg font-bold text-dark-800 dark:text-dark-200">All Users</h2>
-                            <p className="text-xs text-dark-400">Manage platform access</p>
+                            <p className="text-xs text-dark-400">Monitor platform users</p>
                         </div>
                     </div>
-                    <button
-                        onClick={openAddModal}
-                        className="btn-primary flex items-center gap-2"
-                    >
-                        <Plus className="w-4 h-4" /> Add User
-                    </button>
                 </div>
 
                 {loading ? (
@@ -151,7 +163,7 @@ export default function UserManagementPage() {
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(user.id)}
+                                                    onClick={() => handleDelete(user.id, user.role)}
                                                     className="p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-700 transition-colors text-dark-400 hover:text-danger-500"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
@@ -205,13 +217,13 @@ export default function UserManagementPage() {
                             placeholder="9876543210"
                             disabled={!!editingUser}
                         />
-                        {!editingUser && <p className="text-xs text-dark-500 mt-1">OTP will be sent to this number for login</p>}
                     </div>
 
                     <div>
-                        <label className="block text-xs font-medium text-dark-400 uppercase tracking-wider mb-1">Email (Optional)</label>
+                        <label className="block text-xs font-medium text-dark-400 uppercase tracking-wider mb-1">Email</label>
                         <input
                             type="email"
+                            required
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             className="input-field"
@@ -248,6 +260,42 @@ export default function UserManagementPage() {
                             </button>
                         </div>
                     </div>
+
+                    {formData.role === 'worker' && (
+                        <>
+                            <div>
+                                <label className="block text-xs font-medium text-dark-400 uppercase tracking-wider mb-1">
+                                    <MapPin className="w-3 h-3 inline mr-1" />
+                                    City
+                                </label>
+                                <select
+                                    value={formData.city}
+                                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                                    className="input-field"
+                                    required
+                                >
+                                    {CITIES.map(city => (
+                                        <option key={city.value} value={city.value}>{city.label}</option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-dark-500 mt-1">
+                                    Trigger support: {getCityTriggers(formData.city)}
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-dark-400 uppercase tracking-wider mb-1">Platform</label>
+                                <select
+                                    value={formData.platform}
+                                    onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
+                                    className="input-field"
+                                >
+                                    <option value="Zomato">Zomato</option>
+                                    <option value="Swiggy">Swiggy</option>
+                                </select>
+                            </div>
+                        </>
+                    )}
 
                     <div className="flex gap-3 pt-4">
                         <button

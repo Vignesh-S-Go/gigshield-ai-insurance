@@ -1,6 +1,6 @@
 ## 🔐 Demo Login Instructions
 
-This is a prototype/demo version of **GigShield**.
+This is a prototype/demo version of **ZeroClaim**.
 
 - You can enter **any valid phone number**
 - Enter **any OTP** to proceed

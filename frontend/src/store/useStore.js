@@ -1,33 +1,34 @@
 import { create } from 'zustand';
 import api from '../services/api';
+import { clearSession, getStoredSession, storeSession } from '../services/authSession';
 import { getClaimsOverTime, getPayoutsByZone, getTriggerDistribution, getAIInsights } from '../utils/mockData';
+
+const storedSession = getStoredSession();
 
 const useStore = create((set, get) => ({
   // Auth
-  isAuthenticated: !!JSON.parse(localStorage.getItem('currentUser')),
-  user: JSON.parse(localStorage.getItem('currentUser')) || null,
+  isAuthenticated: storedSession.isAuthenticated,
+  user: storedSession.user,
   users: JSON.parse(localStorage.getItem('users')) || [],
 
-  login: (userData) => set(() => {
-    localStorage.setItem('currentUser', JSON.stringify(userData));
+  login: (userData, token, worker = userData?.worker || null) => set(() => {
+    storeSession({ user: userData, token, worker });
     return { isAuthenticated: true, user: userData };
   }),
 
   signup: (userData) => set((state) => {
     const newUsers = [...state.users, userData];
     localStorage.setItem('users', JSON.stringify(newUsers));
-    localStorage.setItem('currentUser', JSON.stringify(userData));
-    return { users: newUsers, isAuthenticated: true, user: userData };
+    return { users: newUsers };
   }),
 
   logout: () => set(() => {
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('currentWorker');
+    clearSession();
     return { isAuthenticated: false, user: null };
   }),
 
   // Theme
-  darkMode: false,
+  darkMode: true,
   toggleDarkMode: () => set((state) => {
     const newMode = !state.darkMode;
     if (newMode) {

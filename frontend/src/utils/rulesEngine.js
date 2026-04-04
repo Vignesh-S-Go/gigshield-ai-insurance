@@ -1,5 +1,5 @@
 /**
- * GigShield Rules Engine
+ * ZeroClaim Rules Engine
  * 
  * This engine validates claims against standard insurance exclusions.
  * Production Note: This logic protects the 'Loss Ratio' by excluding non-insurable 

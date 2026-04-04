@@ -120,17 +120,17 @@ const WorkerPolicyPage = ({ onAction }) => {
             </div>
 
             {/* Exclusions Section */}
-            <div className="bg-dark-900/50 border border-dark-800 rounded-3xl p-6">
+            <div className="bg-white dark:bg-dark-900/50 border border-dark-200 dark:border-dark-800 rounded-3xl p-6">
                 <h3 className="text-xs font-black text-danger-500/70 uppercase tracking-[0.2em] mb-4">Not Included</h3>
                 <div className="flex flex-wrap gap-2">
                     {exclusions.map((item, idx) => (
-                        <div key={idx} className="px-3 py-1.5 bg-danger-500/5 border border-danger-500/20 rounded-xl flex items-center gap-2">
+                        <div key={idx} className="px-3 py-1.5 bg-danger-50 dark:bg-danger-500/5 border border-danger-200 dark:border-danger-500/20 rounded-xl flex items-center gap-2">
                             <XCircle className="w-3 h-3 text-danger-500" />
-                            <span className="text-[10px] font-extrabold text-white/80">{item}</span>
+                            <span className="text-[10px] font-extrabold text-dark-800 dark:text-white/80">{item}</span>
                         </div>
                     ))}
                 </div>
-                <div className="mt-4 flex items-start gap-2 text-dark-500 scale-95 origin-left">
+                <div className="mt-4 flex items-start gap-2 text-dark-500 dark:text-dark-500 scale-95 origin-left">
                     <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
                     <p className="text-[10px] italic">Claims under these conditions are not covered by our algorithmic engine.</p>
                 </div>

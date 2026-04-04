@@ -7,6 +7,7 @@ import ClaimsPage from './pages/ClaimsPage';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import PayoutsPage from './pages/PayoutsPage';
+import ParametricEnginePage from './pages/ParametricEnginePage';
 import ProfilePage from './pages/ProfilePage';
 import SignupPage from './pages/SignupPage';
 import SmartPolicyPage from './pages/SmartPolicyPage';
@@ -15,12 +16,20 @@ import WorkerApp from './pages/WorkerApp';
 import WorkerDetailPage from './pages/WorkerDetailPage';
 import WorkersPage from './pages/WorkersPage';
 import ZoneRiskPage from './pages/ZoneRiskPage';
+import ZeroClaimDashboard from './components/zeroclaim/ZeroClaimDashboard';
+import AdminLoginPage from './pages/AdminLoginPage';
 import useStore from './store/useStore';
 
 import LiveAlertSystem from './components/LiveAlertSystem';
 
 export default function App() {
   const { darkMode, isAuthenticated, user } = useStore();
+
+  useEffect(() => {
+    // Apply dark mode on initial load
+    document.documentElement.classList.add('dark');
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }, []);
 
   useEffect(() => {
     if (darkMode) {
@@ -39,6 +48,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to={user?.role?.toLowerCase() === 'worker' ? '/worker-dashboard' : '/dashboard'} />} />
         <Route path="/signup" element={!isAuthenticated ? <SignupPage /> : <Navigate to={user?.role?.toLowerCase() === 'worker' ? '/worker-dashboard' : '/dashboard'} />} />
+        <Route path="/admin-login" element={!isAuthenticated ? <AdminLoginPage /> : <Navigate to="/dashboard" />} />
 
         <Route path="/worker-dashboard" element={isAuthenticated ? <WorkerApp /> : <Navigate to="/login" />} />
 
@@ -52,7 +62,9 @@ export default function App() {
           <Route path="/claims" element={<ClaimsPage />} />
           <Route path="/ai-insights" element={<AIInsightsPage />} />
           <Route path="/payouts" element={<PayoutsPage />} />
+          <Route path="/parametric-engine" element={<ParametricEnginePage />} />
           <Route path="/zone-risk" element={<ZoneRiskPage />} />
+          <Route path="/zeroclaim" element={<ZeroClaimDashboard />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

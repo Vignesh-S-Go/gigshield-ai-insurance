@@ -240,7 +240,7 @@ export default function PoliciesPage() {
       </Modal>
 
       {/* Terms & Exclusions Modal */}
-      <Modal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} title="GigShield Policy Handbook" size="lg">
+      <Modal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} title="ZeroClaim Policy Handbook" size="lg">
         <div className="space-y-6">
           <div className="p-4 rounded-xl bg-primary-50 dark:bg-primary-500/10 border border-primary-200 dark:border-primary-500/20">
             <div className="flex gap-4">
@@ -248,7 +248,7 @@ export default function PoliciesPage() {
               <div>
                 <h4 className="font-bold text-dark-800 dark:text-dark-200">Standard Underwriting Guidelines</h4>
                 <p className="text-sm text-dark-500 mt-1 leading-relaxed">
-                  GigShield operates on an actuarial model designed for micro-insurance. These guidelines ensure the 'Loss Ratio' remains sustainable while providing maximum coverage for common gig-work risks.
+                  ZeroClaim operates on an actuarial model designed for micro-insurance. These guidelines ensure the 'Loss Ratio' remains sustainable while providing maximum coverage for common gig-work risks.
                 </p>
               </div>
             </div>
@@ -279,7 +279,7 @@ export default function PoliciesPage() {
           <div className="p-4 rounded-xl bg-dark-50 dark:bg-dark-800/40 border border-dark-100 dark:border-dark-700">
             <h4 className="text-sm font-bold text-dark-800 dark:text-dark-200 mb-2">Notice to Policy Holders</h4>
             <p className="text-xs text-dark-400 leading-relaxed">
-              These exclusions are standard across global Lloyd's-style insurance frameworks. GigShield protects against specific weather and algorithmic triggers (Rain, Heat, AQI) which are statistically models. Catastrophic events are excluded to protect the pool's solvency and ensure payouts for legitimate trigger events.
+              These exclusions are standard across global Lloyd's-style insurance frameworks. ZeroClaim protects against specific weather and algorithmic triggers (Rain, Heat, AQI) which are statistically models. Catastrophic events are excluded to protect the pool's solvency and ensure payouts for legitimate trigger events.
             </p>
           </div>
         </div>

@@ -25,7 +25,7 @@ export default function AIInsightsPage() {
 
   return (
     <div className="animate-fade-in">
-      <Header title="AI Insights" subtitle="Powered by GigShield AI Engine v2.3" />
+      <Header title="AI Insights" subtitle="Powered by ZeroClaim AI Engine v2.3" />
 
       {/* AI Stats Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">

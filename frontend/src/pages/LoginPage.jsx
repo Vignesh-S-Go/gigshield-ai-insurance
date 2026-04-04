@@ -1,6 +1,6 @@
 import { ArrowRight, Loader2, Lock, Phone, Shield, Sparkles } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../api/authApi';
 import useStore from '../store/useStore';
 
@@ -22,9 +22,16 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      await authApi.sendOtp(phone);
+      const result = await authApi.sendOtp(phone);
+      console.log('OTP Response:', result);
+        if (result.otp) {
+        setError(`OTP: ${result.otp}`);
+      } else if (result.demo) {
+        setError(`OTP: ${result.demo}`);
+      }
       setStep('otp');
-    } catch {
+    } catch (err) {
+      console.error('OTP Error:', err);
       setError('Failed to send OTP. Check if server is running.');
     }
     setLoading(false);
@@ -41,7 +48,12 @@ export default function LoginPage() {
     try {
       const result = await authApi.verifyOtp(phone, otp);
       if (result.success) {
-        // Store user and worker data in localStorage
+        if (!result.token) {
+          setError('Login succeeded but no session token was returned.');
+          setLoading(false);
+          return;
+        }
+
         const userData = {
           id: result.user.id,
           name: result.user.name,
@@ -51,14 +63,8 @@ export default function LoginPage() {
           workerId: result.worker?.id,
           worker: result.worker
         };
-        
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        if (result.worker) {
-          localStorage.setItem('currentWorker', JSON.stringify(result.worker));
-        }
-        
-        // Force reload to get fresh user data
-        window.location.href = result.user.role === 'admin' ? '/dashboard' : '/worker-dashboard';
+        login(userData, result.token);
+        navigate(result.user.role === 'admin' ? '/dashboard' : '/worker-dashboard', { replace: true });
       } else {
         setError(result.message || 'Invalid OTP');
       }
@@ -68,8 +74,10 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  const { darkMode } = useStore();
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark-950 via-primary-950 to-dark-900 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className={`min-h-screen flex items-center justify-center p-4 relative overflow-hidden ${darkMode ? 'bg-gradient-to-br from-dark-950 via-primary-950 to-dark-900' : 'bg-gradient-to-br from-slate-100 via-primary-50 to-slate-200'}`}>
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl" />
@@ -84,22 +92,20 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-2xl shadow-primary-500/30 mb-4">
             <Shield className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">GigShield</h1>
-          <p className="text-primary-300/70 text-sm mt-1.5 flex items-center justify-center gap-1.5">
+          <h1 className={`text-3xl font-bold tracking-tight ${darkMode ? 'text-white' : 'text-dark-900'}`}>ZeroClaim</h1>
+          <p className={`text-sm mt-1.5 flex items-center justify-center gap-1.5 ${darkMode ? 'text-primary-300/70' : 'text-primary-600/70'}`}>
             <Sparkles className="w-3.5 h-3.5" />
-            AI-Powered Parametric Insurance
+            Insurance that pays before you ask.
           </p>
         </div>
 
-        <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+        <div className={`p-8 rounded-3xl shadow-2xl ${darkMode ? 'bg-white/5 backdrop-blur-2xl border border-white/10' : 'bg-white border border-dark-200'}`}>
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-dark-900'}`}>
               {step === 'phone' ? 'Welcome back' : 'Verify Identity'}
             </h2>
-            <p className="text-sm text-dark-400 mt-1">
-              {step === 'phone'
-                ? 'Sign in to access your dashboard'
-                : `Enter the code sent to +91 ${phone}`}
+            <p className={`text-sm mt-1 ${darkMode ? 'text-dark-400' : 'text-dark-500'}`}>
+              {step === 'phone' ? 'Sign in to access your dashboard' : `Enter the code sent to +91 ${phone}`}
             </p>
           </div>
 
@@ -121,7 +127,7 @@ export default function LoginPage() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     placeholder="9876543210"
-                    className="w-full pl-20 pr-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-dark-600 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all text-sm"
+                    className={`w-full pl-20 pr-4 py-3.5 rounded-xl border text-sm transition-all ${darkMode ? 'bg-white/5 border-white/10 text-white placeholder:text-dark-600 focus:border-primary-500' : 'bg-white border-dark-200 text-dark-900 placeholder:text-dark-400 focus:border-primary-500'}`}
                     autoFocus
                   />
                 </div>
@@ -148,13 +154,13 @@ export default function LoginPage() {
                     type="text"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="------"
-                    className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-dark-600 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all text-sm tracking-[0.3em] text-center font-mono text-lg"
-                    autoFocus
+                    placeholder="000000"
                     maxLength={6}
+                    className={`w-full pl-12 pr-4 py-3.5 rounded-xl border text-sm tracking-[0.3em] text-center font-mono text-lg transition-all ${darkMode ? 'bg-white/5 border-white/10 text-white placeholder:text-dark-600 focus:border-primary-500' : 'bg-white border-dark-200 text-dark-900 placeholder:text-dark-400 focus:border-primary-500'}`}
+                    autoFocus
                   />
                 </div>
-                <p className="text-xs text-dark-500 mt-2 italic">Check backend console for your mock OTP code</p>
+                <p className="text-xs text-dark-500 mt-2 italic">Check frontend for OTP displayed in the error message</p>
               </div>
               <button
                 type="submit"
@@ -164,22 +170,38 @@ export default function LoginPage() {
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <>Secure Login <ArrowRight className="w-4 h-4" /></>
+                  <>Verify & Login <ArrowRight className="w-4 h-4" /></>
                 )}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setStep('phone'); setOtp(''); setError(''); }}
-                className="w-full py-2 text-sm text-dark-400 hover:text-primary-400 transition-colors"
-              >
-                Change phone number
               </button>
             </form>
           )}
+
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => { setStep('phone'); setOtp(''); setError(''); }}
+              className={`text-sm hover:text-primary-400 transition-colors ${darkMode ? 'text-dark-400' : 'text-dark-500'}`}
+            >
+              {step === 'otp' ? '← Change phone number' : ''}
+            </button>
+          </div>
         </div>
 
+        <p className="text-center text-sm text-dark-400 mt-4">
+          Don't have an account?{' '}
+          <Link to="/signup" className="text-primary-400 hover:underline font-medium">
+            Register here
+          </Link>
+        </p>
+
+        <p className="text-center text-sm text-dark-400 mt-3">
+          Admin?{' '}
+          <Link to="/admin-login" className="text-primary-400 hover:underline font-medium">
+            Login here
+          </Link>
+        </p>
+
         <p className="text-center text-xs text-dark-600 mt-6 font-mono tracking-widest uppercase">
-          GigShield AI Engine v2.4a
+          ZeroClaim AI Engine v2.4a
         </p>
       </div>
     </div>

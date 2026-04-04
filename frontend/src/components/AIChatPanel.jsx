@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 export default function AIChatPanel({ context, initialQuestion }) {
     const [messages, setMessages] = useState([
-        { role: 'ai', text: `Hi! I'm the GigShield AI. I analyzed this claim. Ask me anything.` }
+        { role: 'ai', text: `Hi! I'm the ZeroClaim AI. I analyzed this claim. Ask me anything.` }
     ]);
     const [input, setInput] = useState(initialQuestion || '');
     const [isTyping, setIsTyping] = useState(false);

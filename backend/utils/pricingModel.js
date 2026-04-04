@@ -1,5 +1,5 @@
 /**
- * Actuarial Pricing Model for GigShield
+ * Actuarial Pricing Model for ZeroClaim
  * 
  * Calculates risk-adjusted premiums based on geographic zones and individual worker risk scores.
  */
