@@ -1,16 +1,32 @@
 # 🛵 ZeroClaim — AI-Powered Parametric Income Insurance for Food Delivery Partners
 
-
 > **Guidewire DEVTrails 2026 | University Hackathon**  
 > Protecting Zomato & Swiggy delivery partners from income loss due to uncontrollable external disruptions.
 
 Every time it rains, thousands of delivery workers are forced offline — and the moment they stop working, their income drops to zero.
 
 ## 🌐 Live Demo
-https://prismatic-cascaron-ade43b.netlify.app/
+
+**Frontend:** [https://zeroclaim.netlify.app/login  ](https://zeroclaim.netlify.app/)
+**Backend API:** https://gigshield-ai-insurance-production.up.railway.app/
 
 ---
 
+## 👤 Login Credentials (Demo)
+
+### Worker Login
+| Phone Number | OTP |
+|-------------|-----|
+| 2222255555 | Displayed on screen after clicking "Get Magic Link" |
+| 3333333333 | Displayed on screen after clicking "Get Magic Link" |
+| 4444444444 | Displayed on screen after clicking "Get Magic Link" |
+
+### Admin Login
+| Phone Number | OTP |
+|-------------|-----|
+| 7539912722 | Displayed on screen after clicking "Get Magic Link" |
+
+---
 
 ## 📌 Problem Statement
 
@@ -26,32 +42,15 @@ Traditional insurance requires manual claim filing and verification, which can t
 
 ZeroClaim uses parametric triggers (e.g., rainfall > 35mm/hr) to automatically detect disruptions and instantly approve payouts — eliminating paperwork, delays, and uncertainty.
 
-
-## 👤 Persona: Food Delivery Partner (Zomato / Swiggy)
-
-| Attribute | Detail |
-|-----------|--------|
-| **Name** | Ravi Kumar |
-| **Platform** | Zomato / Swiggy |
-| **City** | Hyderabad (Madhapur & Kondapur zones) |
-| **Avg. Weekly Earnings** | ₹4,000 – ₹6,000 |
-| **Working Hours** | 10–12 hours/day, 6 days/week |
-| **Pain Point** | Loses ₹800–₹1,500/week during monsoon or heatwave days |
-| **Device** | Android smartphone (₹8,000–₹12,000 range) |
-| **Digital Literacy** | UPI-literate; uses Zomato/Swiggy app daily |
-| **Language** | Telugu / Hindi primary |
-
-Food delivery partners are the most weather-exposed gig workers. Unlike e-commerce partners who can shift indoors, Zomato/Swiggy riders have zero fallback — no orders means zero income. Their weekly settlement cycle makes them the perfect fit for a weekly insurance model.
-
 ---
 
 ## 🎬 Persona-Based Scenarios
 
-**Scenario 1 — Heavy Rain:** Rainfall in Madhapur exceeds 35mm/hr. ZeroClaim detects the trigger → validates Ravi's GPS was in the disruption zone → transfers ₹500 (50% daily wage) to his UPI in under 60 seconds. Zero action from Ravi.
+**Scenario 1 — Heavy Rain:** Rainfall exceeds 35mm/hr. ZeroClaim detects the trigger → validates worker's GPS was in the disruption zone → transfers payout (50% daily wage) to UPI in under 60 seconds. Zero action from worker.
 
 **Scenario 2 — Heatwave:** IMD issues Red Alert above 44°C. ZeroClaim triggers 40% daily wage payout for all enrolled workers in the flagged zone.
 
-**Scenario 3 — Curfew / Bandh:** Unplanned bandh shuts Ravi's zone. ZeroClaim detects mobility collapse via traffic anomaly API → auto-triggers 60% daily wage protection.
+**Scenario 3 — Curfew / Bandh:** Unplanned bandh shuts zone. ZeroClaim detects mobility collapse via traffic anomaly API → auto-triggers 60% daily wage protection.
 
 **Scenario 4 — Severe Flooding:** IMD Flood Warning active. ZeroClaim cross-references flood polygon with worker GPS zone → triggers 75% daily wage payout (highest tier).
 
@@ -91,22 +90,14 @@ Premiums are auto-deducted from weekly platform settlements — zero friction fo
 
 | Coverage Tier | Weekly Premium | Max Weekly Payout |
 |---------------|---------------|-------------------|
-| Basic Shield | ₹25/week | ₹500 |
-| Standard Shield | ₹49/week | ₹1,200 |
-| Pro Shield | ₹79/week | ₹2,000 |
+| Basic Shield | ₹45/week | ₹3,000 |
+| Standard Shield | ₹49/week | ₹5,000 |
+| Pro Shield | ₹71/week | ₹7,500 |
 
 **Dynamic Pricing Formula:**
 ```
 Final Premium = Base Premium × Zone Risk Score × Weather Season Multiplier × Claim History Factor
 ```
-
-| Factor | Range | Logic |
-|--------|-------|-------|
-| Zone Risk Score | 0.8 – 1.3 | Historical waterlogging/disruption frequency per zone |
-| Weather Season Multiplier | 1.0 – 1.4 | 1.4 during peak monsoon (July–Sept) |
-| Claim History Factor | 0.95 – 1.1 | Reward clean history; flag frequent claims |
-
-The model re-scores every worker every Sunday night using a 7-day weather forecast — proactive, not reactive.
 
 ---
 
@@ -126,15 +117,18 @@ The model re-scores every worker every Sunday night using a 7-day weather foreca
 
 ## 🤖 AI/ML Integration
 
-**Dynamic Premium Calculation** — XGBoost regression model trained on IMD 5-year historical weather data. Features: zone ID, season, rainfall frequency, order density, prior claim rate. Re-scores weekly.
+**Dynamic Premium Calculation** — Risk-based pricing model trained on weather data. Features: zone ID, season, rainfall frequency, order density, prior claim rate.
 
-**Fraud Detection** — Isolation Forest anomaly detection + rule-based layer:
+**Fraud Detection** — Rule-based layer:
 - GPS spoofing: cross-check worker GPS against disruption zone polygon
 - Activity score: deliveries logged during claimed disruption = flagged
 - Duplicate prevention: hash on worker_id + trigger_id + date
 - Collusion: flag if 90%+ of zone workers claim within 10 minutes
 
-**Predictive Risk Modeling** — 7-day forecast integration to pre-adjust premiums and identify high-risk zones before disruptions occur.
+**Auto-Payout Decision** — AI automatically decides payout based on fraud score:
+- Score < 40: AUTO-APPROVED
+- Score 40-70: REVIEW-NEEDED  
+- Score > 70: BLOCKED
 
 ---
 
@@ -142,16 +136,13 @@ The model re-scores every worker every Sunday night using a 7-day weather foreca
 
 | Layer | Technology |
 |-------|-----------|
-| Worker App | React Native (Android-first) |
-| Admin Dashboard | React.js + Tailwind CSS |
-| Backend API | Node.js (Express) + Python FastAPI |
-| Database | PostgreSQL |
-| Cache / Real-time | Redis |
-| ML Models | scikit-learn, XGBoost (via FastAPI) |
-| Weather / AQI | OpenWeatherMap + IMD + CPCB AQI API |
-| Payment | Razorpay Test Mode / UPI Simulator |
-| Auth | Firebase Auth (OTP-based) |
-| Hosting | AWS EC2 + Vercel |
+| Worker App | React (Mobile-first) + Tailwind CSS |
+| Admin Dashboard | React.js + Tailwind CSS + Zustand |
+| Backend API | Node.js (Express) |
+| Database | PostgreSQL (Supabase) |
+| Auth | Custom OTP-based system |
+| Weather / AQI | OpenWeatherMap + IQAir API |
+| Hosting | Railway (Backend) + Netlify (Frontend) |
 
 ---
 
@@ -165,6 +156,47 @@ The model re-scores every worker every Sunday night using a 7-day weather foreca
 
 ---
 
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18+
+- Supabase account (for database)
+- Weather API keys (optional for demo mode)
+
+### Installation
+
+**Backend:**
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Environment Variables
+
+**Backend (.env):**
+```
+PORT=8000
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_key
+JWT_SECRET=your_jwt_secret
+MONITORED_CITIES=Delhi,Mumbai,Chennai,Bangalore,Hyderabad
+```
+
+**Frontend (.env):**
+```
+VITE_API_URL=http://localhost:8000/api
+```
+
+---
+
 ## 💬 Final Thought
 
-ZeroClaim doesn’t insure vehicles or people — it insures income. And for gig workers, income is everything.
+ZeroClaim doesn't insure vehicles or people — it insures income. And for gig workers, income is everything.
